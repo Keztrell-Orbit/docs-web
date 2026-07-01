@@ -21,7 +21,7 @@ export function AutoPageBreakPlugin({ pageDimension, zoomLevel }: AutoPageBreakP
     if (!rootEl) return;
 
     const pageH = parseInt(PAGE_DIMENSIONS[pageDimension].minHeight);
-    const contentPadding = 192;
+    const contentPadding = 208;
     const contentPerPage = pageH - contentPadding;
     if (contentPerPage <= 0) return;
 
@@ -90,7 +90,7 @@ export function AutoPageBreakPlugin({ pageDimension, zoomLevel }: AutoPageBreakP
     const relativeY = (cursorRect.bottom - editorRect.top) / (zoomLevel / 100);
 
     const pageH = parseInt(PAGE_DIMENSIONS[pageDimension].minHeight);
-    const contentPadding = 192;
+    const contentPadding = 208;
     const contentPerPage = pageH - contentPadding;
     const pageCycle = contentPerPage + PAGE_BREAK_HEIGHT;
 

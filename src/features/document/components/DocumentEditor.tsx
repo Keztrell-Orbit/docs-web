@@ -52,20 +52,16 @@ export function DocumentEditor({
 
   return (
     <div
-      className="flex-1 overflow-auto flex flex-col items-center pt-8 pb-8 pl-4 pr-4 md:pt-8 md:pb-8 md:pl-6 md:pr-6 bg-[#F1F0EA] rounded-none border border-transparent min-w-0 h-full scrollbar-thin"
+      className="flex-1 overflow-auto flex flex-col items-start pt-8 pb-8 pl-4 pr-4 md:pt-8 md:pb-8 md:pl-6 md:pr-6 bg-[#F1F0EA] rounded-none border border-transparent min-w-0 h-full scrollbar-thin"
       id="document-column-container"
     >
-      <motion.div
-        className="flex-shrink-0 ml-0 relative"
-        style={{ marginBottom: "2rem" }}
-        animate={{ width: `calc(${dim.width} * ${zoomLevel / 100})` }}
-        transition={{ type: "spring", stiffness: 180, damping: 25 }}
+      <div
+        className="flex-shrink-0 relative"
+        style={{ width: `calc(${dim.width} * ${zoomLevel / 100})`, marginBottom: "2rem" }}
         id="zoom-scaling-layout-wrapper"
       >
         <motion.div
-          animate={{ scale: zoomLevel / 100 }}
-          transition={{ type: "spring", stiffness: 180, damping: 25 }}
-          style={{ transformOrigin: "top left", width: dim.width }}
+          style={{ zoom: zoomLevel / 100, width: dim.width }}
         >
           {Array.from({ length: pageCount }).map((_, i) => (
             <div
@@ -104,19 +100,17 @@ export function DocumentEditor({
         </motion.div>
 
         <motion.div
-          animate={{ scale: zoomLevel / 100 }}
-          transition={{ type: "spring", stiffness: 180, damping: 25 }}
           style={{
             position: "absolute",
             top: 0,
             left: 0,
             width: dim.width,
             minHeight: `${editorMinHeight}px`,
-            padding: "96px",
+            padding: "112px 96px 96px 112px",
             zIndex: 1,
             fontFamily: fontFamily === 'Inter' ? 'var(--font-sans)' : fontFamily === 'Playfair Display' ? 'var(--font-serif)' : fontFamily === 'JetBrains Mono' ? 'var(--font-mono)' : 'sans-serif',
             fontSize: `${fontSize}px`,
-            transformOrigin: "top left",
+            zoom: zoomLevel / 100,
           }}
           id="multi-page-editor-background"
         >
@@ -134,7 +128,7 @@ export function DocumentEditor({
             <HistoryPlugin />
           </div>
         </motion.div>
-      </motion.div>
+      </div>
 
       <PageBreakCounter onPageCount={setPageCount} />
       <AutoPageBreakPlugin

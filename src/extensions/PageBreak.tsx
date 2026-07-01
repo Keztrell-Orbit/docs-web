@@ -2,7 +2,7 @@ import type { EditorConfig, KlassConstructor, LexicalEditor, LexicalNode, Serial
 import { DecoratorNode } from "lexical";
 import type { JSX } from "react";
 
-export const PAGE_BREAK_HEIGHT = 202;
+export const PAGE_BREAK_HEIGHT = 218;
 
 export class PageBreakNode extends DecoratorNode<JSX.Element> {
   declare ['constructor']: KlassConstructor<typeof PageBreakNode>;

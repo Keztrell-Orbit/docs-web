@@ -6,6 +6,10 @@ interface DocData {
   title?: string;
 }
 
+function stripPageBreaks(html: string): string {
+  return html.replace(/<div data-page-break[^>]*><\/div>/g, "");
+}
+
 export function useDocSync(
   editor: Editor | null,
   currentDoc: DocData | undefined,
@@ -16,8 +20,10 @@ export function useDocSync(
     if (!currentDoc) return;
     if (editor) {
       const currentHTML = editor.getHTML();
-      if (currentDoc.content !== currentHTML) {
-        editor.commands.setContent(currentDoc.content || "");
+      const currentClean = stripPageBreaks(currentHTML);
+      const cleanContent = stripPageBreaks(currentDoc.content || "");
+      if (cleanContent !== currentClean) {
+        editor.commands.setContent(cleanContent);
       }
     }
     if (currentDoc.title && !docTitle) {

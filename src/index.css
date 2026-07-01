@@ -100,6 +100,15 @@ body {
   margin-bottom: 0.5rem;
 }
 
+/* Page break markers in the editor — invisible structural nodes */
+.page-break-marker[data-page-break] {
+  height: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+  pointer-events: none;
+}
+
 .ProseMirror blockquote {
   border-left: 3px solid #3b82f6;
   padding-left: 1rem;

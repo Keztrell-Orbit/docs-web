@@ -1,5 +1,5 @@
 export { useEditorInit } from "./useEditorInit";
-export { usePagination } from "./usePagination";
+export { useAutoPageBreaks } from "./useAutoPageBreaks";
 export { useDocSync } from "./useDocSync";
 export { useChatScroll } from "./useChatScroll";
 export { useClickOutside } from "./useClickOutside";

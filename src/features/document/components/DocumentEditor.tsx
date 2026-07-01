@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { EditorContent, type Editor } from "@tiptap/react";
 import { Loader2 } from "lucide-react";
 import { PAGE_DIMENSIONS } from "../../../types";
@@ -5,16 +6,30 @@ import { PAGE_DIMENSIONS } from "../../../types";
 interface DocumentEditorProps {
   editor: Editor | null;
   pageDimension: keyof typeof PAGE_DIMENSIONS;
-  pageCount: number;
   zoomLevel: number;
   fontFamily: string;
   fontSize: number;
 }
 
 export function DocumentEditor({
-  editor, pageDimension, pageCount, zoomLevel, fontFamily, fontSize,
+  editor, pageDimension, zoomLevel, fontFamily, fontSize,
 }: DocumentEditorProps) {
   const dim = PAGE_DIMENSIONS[pageDimension];
+  const [pageCount, setPageCount] = useState(1);
+
+  useEffect(() => {
+    if (!editor) return;
+    const handler = () => {
+      let count = 1;
+      editor.state.doc.descendants((node) => {
+        if (node.type.name === "pageBreak") count++;
+      });
+      setPageCount(count);
+    };
+    handler();
+    editor.on("update", handler);
+    return () => { editor.off("update", handler); };
+  }, [editor]);
 
   return (
     <div
@@ -29,6 +44,50 @@ export function DocumentEditor({
         }}
         id="zoom-scaling-layout-wrapper"
       >
+        {/* Page backgrounds — white cards stacked without gaps */}
+        <div
+          className="rounded-none"
+          style={{
+            transform: `scale(${zoomLevel / 100})`,
+            transformOrigin: "top left",
+            width: dim.width,
+          }}
+        >
+          {Array.from({ length: pageCount }).map((_, i) => (
+            <div
+              key={i}
+              style={{
+                width: dim.width,
+                height: dim.minHeight,
+                background: "white",
+                borderBottom: i < pageCount - 1 ? "1px solid #E1DFD5" : "1px solid #E1DFD5",
+                boxShadow: i < pageCount - 1
+                  ? "0 1px 2px rgba(0,0,0,0.06)"
+                  : "-16px 24px 32px -12px rgba(0,0,0,0.55), -6px 8px 16px -8px rgba(0,0,0,0.35)",
+                position: "relative",
+              }}
+            >
+              <span
+                style={{
+                  position: "absolute",
+                  bottom: "20px",
+                  left: 0,
+                  right: 0,
+                  textAlign: "center",
+                  fontSize: "11px",
+                  color: "#9CA3AF",
+                  fontFamily: "var(--font-sans)",
+                  userSelect: "none",
+                  pointerEvents: "none",
+                }}
+              >
+                {i + 1}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* Editor content — on top of page backgrounds */}
         <div
           className="rounded-none"
           style={{
@@ -38,7 +97,7 @@ export function DocumentEditor({
             width: dim.width,
             minHeight: `${pageCount * parseInt(dim.minHeight)}px`,
             padding: "48px 64px",
-            background: "transparent",
+            zIndex: 1,
             fontFamily: fontFamily === 'Inter' ? 'var(--font-sans)' : fontFamily === 'Playfair Display' ? 'var(--font-serif)' : fontFamily === 'JetBrains Mono' ? 'var(--font-mono)' : 'sans-serif',
             fontSize: `${fontSize}px`,
             transform: `scale(${zoomLevel / 100})`,
@@ -57,27 +116,6 @@ export function DocumentEditor({
             )}
           </div>
         </div>
-
-        {Array.from({ length: pageCount }).map((_, i) => (
-          <div
-            key={i}
-            className="rounded-none"
-            style={{
-              width: dim.width,
-              height: dim.minHeight,
-              overflow: "hidden",
-              position: "relative",
-              zIndex: 1,
-              pointerEvents: "none",
-              marginBottom: i < pageCount - 1 ? "2rem" : "0",
-              border: "1px solid #E1DFD5",
-              boxShadow: "-16px 24px 32px -12px rgba(0,0,0,0.55), -6px 8px 16px -8px rgba(0,0,0,0.35)",
-              background: "white",
-              transform: `scale(${zoomLevel / 100})`,
-              transformOrigin: "top left",
-            }}
-          />
-        ))}
       </div>
     </div>
   );

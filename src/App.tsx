@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db, seedDatabase } from "./db";
-import { useEditorInit, usePagination, useDocSync, useChatScroll, useOutline } from "./hooks";
+import { useEditorInit, useAutoPageBreaks, useDocSync, useChatScroll, useOutline } from "./hooks";
 import { MenuBar, ShareModal, HISTORICAL_VERSIONS } from "./features/menubar";
 import { FormatToolbar } from "./features/toolbar";
 import { OutlinePanel } from "./features/outline";
@@ -14,7 +14,6 @@ export default function App() {
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(true);
   const [isOfflineSaved, setIsOfflineSaved] = useState(true);
-  const [pageCount, setPageCount] = useState(1);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   const [expandedChapters, setExpandedChapters] = useState<Record<string, boolean>>({});
@@ -43,12 +42,7 @@ export default function App() {
   const outlineData = useOutline(currentDoc?.content);
 
   const editor = useEditorInit();
-  const computedPageCount = usePagination(editor, pageDimension);
-
-  useEffect(() => {
-    setPageCount(computedPageCount);
-  }, [computedPageCount]);
-
+  useAutoPageBreaks(editor, pageDimension);
   useDocSync(editor, currentDoc, docTitle, setDocTitle);
   useChatScroll(chatEndRef, chatMessages, isGenerating);
 
@@ -261,7 +255,6 @@ export default function App() {
           <DocumentEditor
             editor={editor}
             pageDimension={pageDimension}
-            pageCount={pageCount}
             zoomLevel={zoomLevel}
             fontFamily={fontFamily}
             fontSize={fontSize}

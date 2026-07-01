@@ -35,20 +35,6 @@ class AppDatabase extends Dexie {
 
 export const db = new AppDatabase();
 
-const DEFAULT_CONTENT = `
-<h2>Intellectual Property Assignment Agreement</h2>
-<p>This Intellectual Property Assignment Agreement (the "Agreement") is entered into as of 25/05/2025, by and between: <strong>Sebastian Cornelius</strong>, an individual residing at 123 Innovation Drive, Suite 400, San Francisco, CA 94105 (the "Assignor"), and <strong>QuantumNova Technologies, Inc</strong> (the "Company").</p>
-
-<h3>1. Assignment of Intellectual Property</h3>
-<p>(a) Assignment. For good and valuable consideration, the receipt and sufficiency of which are hereby acknowledged, the Assignor hereby irrevocably assigns, transfers, and conveys to the Company, its successors and assigns, all right, title, and interest worldwide in and to any and all Intellectual Property (as defined below) that the Assignor has conceived, developed, authored, reduced to practice, or otherwise created, in whole or in part, (i) in the course of performing services for or on behalf of the Company, whether as an employee, consultant, or independent contractor, or (ii) using the Company's resources, confidential information, or facilities (collectively, the "Assigned IP").</p>
-
-<h3>2. Governing Law</h3>
-<p>This Agreement, and all claims or causes of action (whether in contract, tort or statute) that may be based upon, arise out of or relate to this Agreement, shall be governed by, and enforced in accordance with, the internal laws of the State of California, without regard to its conflict of laws principles.</p>
-
-<h3>3. Further Assurances</h3>
-<p>The Assignor agrees to assist the Company, or its designee, in every proper way to secure the Company's rights in the Assigned IP and any copyrights, patents, or other intellectual property rights relating thereto in any and all countries, including the disclosure to the Company of all pertinent information and data with respect thereto, the execution of all applications, specifications, oaths, assignments, and all other instruments which the Company shall deem necessary in order to apply for and obtain such rights.</p>
-`;
-
 const INITIAL_CHATS: ChatMessage[] = [
   {
     id: 'welcome-msg',
@@ -63,8 +49,8 @@ export async function seedDatabase() {
   if (docCount === 0) {
     await db.documents.add({
       id: 'doc-default',
-      title: 'Intellectual Property Assignment Agreement',
-      content: DEFAULT_CONTENT,
+      title: 'Untitled Document',
+      content: '',
       showLogo: true,
       updatedAt: Date.now(),
     });

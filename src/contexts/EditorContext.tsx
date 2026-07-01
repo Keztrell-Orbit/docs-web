@@ -6,9 +6,11 @@ import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 import { ListPlugin } from "@lexical/react/LexicalListPlugin";
 import { HeadingNode } from "@lexical/rich-text";
 import { ListNode, ListItemNode } from "@lexical/list";
+import { LinkNode } from "@lexical/link";
 import { $generateHtmlFromNodes } from "@lexical/html";
 import { $generateNodesFromDOM } from "@lexical/html";
 import { $getRoot } from "lexical";
+import { ImageNode } from "../extensions/ImageNode";
 import { PageBreakNode } from "../extensions/PageBreak";
 import { db } from "../db";
 
@@ -73,6 +75,8 @@ export function EditorProvider({
     namespace: "KreztellDocs",
     nodes: [
       HeadingNode,
+      ImageNode,
+      LinkNode,
       ListNode,
       ListItemNode,
       PageBreakNode,
@@ -80,7 +84,13 @@ export function EditorProvider({
     onError: (error: Error) => {
       console.error("Lexical editor error:", error);
     },
-    theme: {},
+    theme: {
+      text: {
+        underline: "underline",
+        strikethrough: "line-through",
+        underlineStrikethrough: "underline line-through",
+      },
+    },
   }), []);
 
   return (

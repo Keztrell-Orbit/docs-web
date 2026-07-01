@@ -47,7 +47,6 @@ body {
 #lexical-editor-input {
   outline: none;
   font-family: var(--font-sans);
-  font-size: 0.975rem;
   line-height: 1.7;
   color: #374151;
   caret-color: #374151;

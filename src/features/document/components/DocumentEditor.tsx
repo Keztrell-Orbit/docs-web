@@ -3,6 +3,7 @@ import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
+import { LinkPlugin } from "@lexical/react/LexicalLinkPlugin";
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
 import { motion } from "motion/react";
 import { $getRoot } from "lexical";
@@ -122,6 +123,7 @@ export function DocumentEditor({
               ErrorBoundary={LexicalErrorBoundary}
             />
             <HistoryPlugin />
+            <LinkPlugin />
             <SelectAllPlugin />
           </div>
         </motion.div>

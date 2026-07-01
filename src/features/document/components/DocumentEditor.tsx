@@ -1,37 +1,50 @@
 import { useState, useEffect } from "react";
-import { EditorContent, type Editor } from "@tiptap/react";
-import { Loader2 } from "lucide-react";
+import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
+import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
+import { ContentEditable } from "@lexical/react/LexicalContentEditable";
+import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
+import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
 import { motion } from "motion/react";
+import { $getRoot } from "lexical";
 import { PAGE_DIMENSIONS } from "../../../types";
+import { $isPageBreakNode } from "../../../extensions/PageBreak";
+import { AutoPageBreakPlugin } from "../../../plugins/AutoPageBreakPlugin";
 
 interface DocumentEditorProps {
-  editor: Editor | null;
   pageDimension: keyof typeof PAGE_DIMENSIONS;
   zoomLevel: number;
   fontFamily: string;
   fontSize: number;
 }
 
+function PageBreakCounter({ onPageCount }: { onPageCount: (count: number) => void }) {
+  const [editor] = useLexicalComposerContext();
+
+  useEffect(() => {
+    const updateCount = () => {
+      editor.getEditorState().read(() => {
+        let count = 1;
+        const children = $getRoot().getChildren();
+        for (const child of children) {
+          if ($isPageBreakNode(child)) count++;
+        }
+        onPageCount(count);
+      });
+    };
+    updateCount();
+    const unregister = editor.registerUpdateListener(updateCount);
+    return () => unregister();
+  }, [editor, onPageCount]);
+
+  return null;
+}
+
 export function DocumentEditor({
-  editor, pageDimension, zoomLevel, fontFamily, fontSize,
+  pageDimension, zoomLevel, fontFamily, fontSize,
 }: DocumentEditorProps) {
   const dim = PAGE_DIMENSIONS[pageDimension];
   const pageH = parseInt(dim.minHeight);
   const [pageCount, setPageCount] = useState(1);
-
-  useEffect(() => {
-    if (!editor) return;
-    const handler = () => {
-      let count = 1;
-      editor.state.doc.descendants((node) => {
-        if (node.type.name === "pageBreak") count++;
-      });
-      setPageCount(count);
-    };
-    handler();
-    editor.on("update", handler);
-    return () => { editor.off("update", handler); };
-  }, [editor]);
 
   const pageBreakCount = pageCount - 1;
   const totalPageBgHeight = pageCount * pageH + pageBreakCount * 10;
@@ -44,32 +57,15 @@ export function DocumentEditor({
     >
       <motion.div
         className="flex-shrink-0 ml-0 relative"
-        style={{
-          marginBottom: "2rem",
-        }}
-        animate={{
-          width: `calc(${dim.width} * ${zoomLevel / 100})`,
-        }}
-        transition={{
-          type: "spring",
-          stiffness: 180,
-          damping: 25,
-        }}
+        style={{ marginBottom: "2rem" }}
+        animate={{ width: `calc(${dim.width} * ${zoomLevel / 100})` }}
+        transition={{ type: "spring", stiffness: 180, damping: 25 }}
         id="zoom-scaling-layout-wrapper"
       >
         <motion.div
-          animate={{
-            scale: zoomLevel / 100,
-          }}
-          transition={{
-            type: "spring",
-            stiffness: 180,
-            damping: 25,
-          }}
-          style={{
-            transformOrigin: "top left",
-            width: dim.width,
-          }}
+          animate={{ scale: zoomLevel / 100 }}
+          transition={{ type: "spring", stiffness: 180, damping: 25 }}
+          style={{ transformOrigin: "top left", width: dim.width }}
         >
           {Array.from({ length: pageCount }).map((_, i) => (
             <div
@@ -108,14 +104,8 @@ export function DocumentEditor({
         </motion.div>
 
         <motion.div
-          animate={{
-            scale: zoomLevel / 100,
-          }}
-          transition={{
-            type: "spring",
-            stiffness: 180,
-            damping: 25,
-          }}
+          animate={{ scale: zoomLevel / 100 }}
+          transition={{ type: "spring", stiffness: 180, damping: 25 }}
           style={{
             position: "absolute",
             top: 0,
@@ -130,18 +120,27 @@ export function DocumentEditor({
           }}
           id="multi-page-editor-background"
         >
-          <div className="w-full prose max-w-none prose-slate" id="tiptap-text-editor-container">
-            {editor ? (
-              <EditorContent editor={editor} className="outline-none" />
-            ) : (
-              <div className="flex flex-col items-center justify-center py-20 text-gray-400" id="editor-loading-placeholder">
-                <Loader2 className="animate-spin text-gray-300 mb-2" size={32} />
-                <p className="text-sm font-mono tracking-wider">Mounting ProseMirror...</p>
-              </div>
-            )}
+          <div className="w-full prose max-w-none prose-slate" id="lexical-text-editor-container">
+            <RichTextPlugin
+              contentEditable={
+                <ContentEditable
+                  className="outline-none"
+                  id="lexical-editor-input"
+                />
+              }
+              placeholder={null}
+              ErrorBoundary={LexicalErrorBoundary}
+            />
+            <HistoryPlugin />
           </div>
         </motion.div>
       </motion.div>
+
+      <PageBreakCounter onPageCount={setPageCount} />
+      <AutoPageBreakPlugin
+        pageDimension={pageDimension}
+        zoomLevel={zoomLevel}
+      />
     </div>
   );
 }

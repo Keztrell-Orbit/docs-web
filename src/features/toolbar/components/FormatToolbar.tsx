@@ -1,13 +1,27 @@
+import { useState, useEffect, useCallback } from "react";
 import {
   Search, Undo2, Redo2, Printer, Paintbrush, Bold, Italic,
   Underline, AlignLeft, AlignCenter, AlignRight, AlignJustify,
   List, ListOrdered, Baseline, Highlighter, Link as LinkIcon,
   Image as ImageIcon, ChevronDown,
 } from "lucide-react";
-import type { Editor } from "@tiptap/react";
+import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
+import {
+  $getSelection,
+  $isRangeSelection,
+  FORMAT_TEXT_COMMAND,
+  UNDO_COMMAND,
+  REDO_COMMAND,
+  $createParagraphNode,
+} from "lexical";
+import {
+  INSERT_UNORDERED_LIST_COMMAND,
+  INSERT_ORDERED_LIST_COMMAND,
+} from "@lexical/list";
+import { $createHeadingNode } from "@lexical/rich-text";
+import { $setBlocksType } from "@lexical/selection";
 
 interface FormatToolbarProps {
-  editor: Editor | null;
   zoomLevel: number;
   setZoomLevel: (level: number) => void;
   fontFamily: string;
@@ -20,11 +34,62 @@ interface FormatToolbarProps {
   setIsMenubarCollapsed: (collapsed: boolean) => void;
 }
 
+interface ActiveFormats {
+  bold: boolean;
+  italic: boolean;
+  strike: boolean;
+  bulletList: boolean;
+  orderedList: boolean;
+}
+
 export function FormatToolbar({
-  editor, zoomLevel, setZoomLevel, fontFamily, setFontFamily,
+  zoomLevel, setZoomLevel, fontFamily, setFontFamily,
   fontSize, setFontSize, menuSearchQuery, setMenuSearchQuery,
   isMenubarCollapsed, setIsMenubarCollapsed,
 }: FormatToolbarProps) {
+  const [editor] = useLexicalComposerContext();
+  const [active, setActive] = useState<ActiveFormats>({
+    bold: false,
+    italic: false,
+    strike: false,
+    bulletList: false,
+    orderedList: false,
+  });
+
+  useEffect(() => {
+    const update = () => {
+      editor.getEditorState().read(() => {
+        const selection = $getSelection();
+        if (!$isRangeSelection(selection)) return;
+        setActive({
+          bold: selection.hasFormat("bold"),
+          italic: selection.hasFormat("italic"),
+          strike: selection.hasFormat("strikethrough"),
+          bulletList: false,
+          orderedList: false,
+        });
+      });
+    };
+    const unregister = editor.registerUpdateListener(update);
+    return () => unregister();
+  }, [editor]);
+
+  const toggleFormat = useCallback((format: "bold" | "italic" | "strikethrough") => {
+    editor.dispatchCommand(FORMAT_TEXT_COMMAND, format);
+  }, [editor]);
+
+  const setParagraph = useCallback(() => {
+    editor.update(() => {
+      $setBlocksType($getSelection(), () => $createParagraphNode());
+    });
+  }, [editor]);
+
+  const setHeading = useCallback((level: 1 | 2 | 3 | 4 | 5 | 6) => {
+    editor.update(() => {
+      $setBlocksType($getSelection(), () => $createHeadingNode(`h${level}`));
+    });
+  }, [editor]);
+
   return (
     <div className="w-full px-4 pt-0 pb-1.5 md:px-8 md:pt-0 md:pb-2 flex-shrink-0 z-20 flex items-center justify-between gap-2 bg-[#F1F0EA]" id="toolbar-floating-wrapper">
       <div
@@ -46,8 +111,8 @@ export function FormatToolbar({
 
         <div className="w-px h-5 bg-gray-300 self-center mx-1" />
 
-        <button onClick={() => editor?.chain().focus().undo().run()} className="p-1.5 rounded hover:bg-gray-100 text-gray-600 transition-colors cursor-pointer" title="Undo" id="toolbar-action-undo"><Undo2 size={14} /></button>
-        <button onClick={() => editor?.chain().focus().redo().run()} className="p-1.5 rounded hover:bg-gray-100 text-gray-600 transition-colors cursor-pointer" title="Redo" id="toolbar-action-redo"><Redo2 size={14} /></button>
+        <button onClick={() => editor.dispatchCommand(UNDO_COMMAND, undefined)} className="p-1.5 rounded hover:bg-gray-100 text-gray-600 transition-colors cursor-pointer" title="Undo" id="toolbar-action-undo"><Undo2 size={14} /></button>
+        <button onClick={() => editor.dispatchCommand(REDO_COMMAND, undefined)} className="p-1.5 rounded hover:bg-gray-100 text-gray-600 transition-colors cursor-pointer" title="Redo" id="toolbar-action-redo"><Redo2 size={14} /></button>
         <button onClick={() => window.print()} className="p-1.5 rounded hover:bg-gray-100 text-gray-600 transition-colors cursor-pointer" title="Print" id="toolbar-action-print"><Printer size={14} /></button>
         <button onClick={() => alert("Format painter active. Click a section to apply styles.")} className="p-1.5 rounded hover:bg-gray-100 text-gray-600 transition-colors cursor-pointer" title="Format Painter" id="toolbar-action-paintbrush"><Paintbrush size={14} /></button>
 
@@ -74,9 +139,9 @@ export function FormatToolbar({
           <select
             onChange={(e) => {
               const val = e.target.value;
-              if (val === "p") editor?.chain().focus().setParagraph().run();
-              else if (val === "h2") editor?.chain().focus().toggleHeading({ level: 2 }).run();
-              else if (val === "h3") editor?.chain().focus().toggleHeading({ level: 3 }).run();
+              if (val === "p") setParagraph();
+              else if (val === "h2") setHeading(2);
+              else if (val === "h3") setHeading(3);
             }}
             className="bg-transparent text-xs text-gray-700 font-medium border-none outline-none focus:ring-0 cursor-pointer"
             id="toolbar-style-dropdown"
@@ -112,9 +177,9 @@ export function FormatToolbar({
 
         <div className="w-px h-5 bg-gray-300 self-center mx-1" />
 
-        <button onClick={() => editor?.chain().focus().toggleBold().run()} className={`p-1.5 rounded transition-colors cursor-pointer ${editor?.isActive("bold") ? "bg-stone-200 text-stone-800 font-semibold" : "hover:bg-gray-100 text-gray-600"}`} title="Bold" id="toolbar-style-bold"><Bold size={14} /></button>
-        <button onClick={() => editor?.chain().focus().toggleItalic().run()} className={`p-1.5 rounded transition-colors cursor-pointer ${editor?.isActive("italic") ? "bg-stone-200 text-stone-800 font-semibold" : "hover:bg-gray-100 text-gray-600"}`} title="Italic" id="toolbar-style-italic"><Italic size={14} /></button>
-        <button onClick={() => editor?.chain().focus().toggleStrike().run()} className={`p-1.5 rounded transition-colors cursor-pointer ${editor?.isActive("strike") ? "bg-stone-200 text-stone-800 font-semibold" : "hover:bg-gray-100 text-gray-600"}`} title="Strikethrough" id="toolbar-style-strikethrough"><Underline size={14} /></button>
+        <button onClick={() => toggleFormat("bold")} className={`p-1.5 rounded transition-colors cursor-pointer ${active.bold ? "bg-stone-200 text-stone-800 font-semibold" : "hover:bg-gray-100 text-gray-600"}`} title="Bold" id="toolbar-style-bold"><Bold size={14} /></button>
+        <button onClick={() => toggleFormat("italic")} className={`p-1.5 rounded transition-colors cursor-pointer ${active.italic ? "bg-stone-200 text-stone-800 font-semibold" : "hover:bg-gray-100 text-gray-600"}`} title="Italic" id="toolbar-style-italic"><Italic size={14} /></button>
+        <button onClick={() => toggleFormat("strikethrough")} className={`p-1.5 rounded transition-colors cursor-pointer ${active.strike ? "bg-stone-200 text-stone-800 font-semibold" : "hover:bg-gray-100 text-gray-600"}`} title="Strikethrough" id="toolbar-style-strikethrough"><Underline size={14} /></button>
         <button onClick={() => alert("Text Color set to: Charcoal Slate")} className="p-1.5 rounded hover:bg-gray-100 text-gray-600 cursor-pointer" title="Text Color" id="toolbar-style-color"><Baseline size={14} /></button>
         <button onClick={() => alert("Highlight marker set to: Amber Yellow")} className="p-1.5 rounded hover:bg-gray-100 text-gray-600 cursor-pointer" title="Highlight Marker" id="toolbar-style-highlight"><Highlighter size={14} /></button>
 
@@ -132,8 +197,8 @@ export function FormatToolbar({
 
         <div className="w-px h-5 bg-gray-300 self-center mx-1" />
 
-        <button onClick={() => editor?.chain().focus().toggleBulletList().run()} className={`p-1.5 rounded transition-colors cursor-pointer ${editor?.isActive("bulletList") ? "bg-stone-200 text-stone-800 font-semibold" : "hover:bg-gray-100 text-gray-600"}`} title="Bulleted List" id="toolbar-action-bullet"><List size={14} /></button>
-        <button onClick={() => editor?.chain().focus().toggleOrderedList().run()} className={`p-1.5 rounded transition-colors cursor-pointer ${editor?.isActive("orderedList") ? "bg-stone-200 text-stone-800 font-semibold" : "hover:bg-gray-100 text-gray-600"}`} title="Numbered List" id="toolbar-action-numbered"><ListOrdered size={14} /></button>
+        <button onClick={() => editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined)} className={`p-1.5 rounded transition-colors cursor-pointer ${active.bulletList ? "bg-stone-200 text-stone-800 font-semibold" : "hover:bg-gray-100 text-gray-600"}`} title="Bulleted List" id="toolbar-action-bullet"><List size={14} /></button>
+        <button onClick={() => editor.dispatchCommand(INSERT_ORDERED_LIST_COMMAND, undefined)} className={`p-1.5 rounded transition-colors cursor-pointer ${active.orderedList ? "bg-stone-200 text-stone-800 font-semibold" : "hover:bg-gray-100 text-gray-600"}`} title="Numbered List" id="toolbar-action-numbered"><ListOrdered size={14} /></button>
       </div>
 
       {isMenubarCollapsed && (

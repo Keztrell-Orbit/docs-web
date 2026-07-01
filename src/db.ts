@@ -3,7 +3,7 @@ import Dexie, { type Table } from 'dexie';
 export interface Document {
   id: string;
   title: string;
-  content: string; // HTML string for TipTap
+  content: string; // HTML string for rich text editor
   showLogo: boolean;
   updatedAt: number;
 }

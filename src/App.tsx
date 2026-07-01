@@ -1,7 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
+import type { LexicalEditor } from "lexical";
+import { $generateHtmlFromNodes } from "@lexical/html";
 import { db, seedDatabase } from "./db";
-import { useEditorInit, useAutoPageBreaks, useDocSync, useChatScroll, useOutline } from "./hooks";
+import { EditorProvider } from "./contexts/EditorContext";
+import { useChatScroll, useOutline } from "./hooks";
 import { MenuBar, ShareModal, HISTORICAL_VERSIONS } from "./features/menubar";
 import { FormatToolbar } from "./features/toolbar";
 import { OutlinePanel } from "./features/outline";
@@ -15,6 +18,7 @@ export default function App() {
   const [isChatOpen, setIsChatOpen] = useState(true);
   const [isOfflineSaved, setIsOfflineSaved] = useState(true);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const editorRef = useRef<LexicalEditor | null>(null);
 
   const [expandedChapters, setExpandedChapters] = useState<Record<string, boolean>>({});
   const [selectedPartId, setSelectedPartId] = useState<string>("");
@@ -41,9 +45,6 @@ export default function App() {
 
   const outlineData = useOutline(currentDoc?.content);
 
-  const editor = useEditorInit();
-  useAutoPageBreaks(editor, pageDimension, zoomLevel);
-  useDocSync(editor, currentDoc, docTitle, setDocTitle);
   useChatScroll(chatEndRef, chatMessages, isGenerating);
 
   useEffect(() => {
@@ -53,6 +54,10 @@ export default function App() {
   useEffect(() => {
     setIsOfflineSaved(true);
   }, [currentDoc]);
+
+  const handleEditorReady = useCallback((editor: LexicalEditor) => {
+    editorRef.current = editor;
+  }, []);
 
   const handleTitleChange = useCallback(async (newTitle: string) => {
     setDocTitle(newTitle);
@@ -86,7 +91,10 @@ export default function App() {
     setIsGenerating(true);
 
     try {
-      const docHtml = editor?.getHTML() || currentDoc?.content || "";
+      const editor = editorRef.current;
+      const docHtml = editor
+        ? editor.getEditorState().read(() => $generateHtmlFromNodes(editor, null))
+        : currentDoc?.content || "";
       const docTitleVal = currentDoc?.title || "Document";
       const hasLogo = currentDoc?.showLogo || false;
 
@@ -137,7 +145,7 @@ export default function App() {
     } finally {
       setIsGenerating(false);
     }
-  }, [inputText, isGenerating, editor, currentDoc, chatMessages]);
+  }, [inputText, isGenerating, currentDoc, chatMessages]);
 
   const restoreSnapshot = useCallback(async (snapshot: typeof HISTORICAL_VERSIONS[0]) => {
     setIsOfflineSaved(false);
@@ -166,7 +174,7 @@ export default function App() {
   }, []);
 
   const handleHeadingClick = useCallback((title: string) => {
-    const editorEl = document.querySelector(".ProseMirror");
+    const editorEl = document.querySelector("#lexical-editor-input");
     if (!editorEl) return;
     const elements = Array.from(editorEl.querySelectorAll("h1, h2, h3, h4, h5, h6"));
     const target = elements.find((el) => el.textContent?.trim() === title.trim());
@@ -180,7 +188,7 @@ export default function App() {
   }, []);
 
   const highlightDocumentSection = useCallback((keyword: string) => {
-    const editorEl = document.querySelector(".ProseMirror");
+    const editorEl = document.querySelector("#lexical-editor-input");
     if (!editorEl) return;
     const elements = Array.from(editorEl.querySelectorAll("h2, h3, p, strong, li"));
     const target = elements.find((el) =>
@@ -198,85 +206,87 @@ export default function App() {
   return (
     <div className="h-screen w-screen bg-[#F1F0EA] flex flex-col md:flex-row font-sans text-stone-800 antialiased overflow-hidden" id="editor-workspace-container">
       <div className="flex-1 flex flex-col h-full overflow-hidden relative transition-all duration-300 mr-0" id="left-document-pane">
-        <MenuBar
-          editor={editor}
-          docTitle={docTitle}
-          handleTitleChange={handleTitleChange}
-          isStarred={isStarred}
-          setIsStarred={setIsStarred}
-          isMenubarCollapsed={isMenubarCollapsed}
-          setIsMenubarCollapsed={setIsMenubarCollapsed}
-          isHistoryOpen={isHistoryOpen}
-          setIsHistoryOpen={setIsHistoryOpen}
-          isChatOpen={isChatOpen}
-          setIsChatOpen={setIsChatOpen}
-          setIsShareModalOpen={setIsShareModalOpen}
-          tags={tags}
-          setTags={setTags}
-          isAddingTag={isAddingTag}
-          setIsAddingTag={setIsAddingTag}
-          newTagVal={newTagVal}
-          setNewTagVal={setNewTagVal}
-          restoreSnapshot={restoreSnapshot}
-          resetWorkspace={resetWorkspace}
-          setInputText={setInputText}
-          setZoomLevel={setZoomLevel}
-          highlightDocumentSection={highlightDocumentSection}
-          isOfflineSaved={isOfflineSaved}
-        />
-
-        <FormatToolbar
-          editor={editor}
-          zoomLevel={zoomLevel}
-          setZoomLevel={setZoomLevel}
-          fontFamily={fontFamily}
-          setFontFamily={setFontFamily}
-          fontSize={fontSize}
-          setFontSize={setFontSize}
-          menuSearchQuery={menuSearchQuery}
-          setMenuSearchQuery={setMenuSearchQuery}
-          isMenubarCollapsed={isMenubarCollapsed}
-          setIsMenubarCollapsed={setIsMenubarCollapsed}
-        />
-
-        <div
-          className="flex-1 flex flex-row items-stretch justify-start gap-6 px-4 md:px-8 overflow-hidden min-h-0 bg-[#F1F0EA]"
-          id="side-by-side-workspace-container"
+        <EditorProvider
+          initialContent={currentDoc?.content}
+          onEditorReady={handleEditorReady}
         >
-          <OutlinePanel
-            outlineData={outlineData}
-            expandedChapters={expandedChapters}
-            setExpandedChapters={setExpandedChapters}
-            selectedPartId={selectedPartId}
-            setSelectedPartId={setSelectedPartId}
-            handleHeadingClick={handleHeadingClick}
-          />
-
-          <DocumentEditor
-            editor={editor}
-            pageDimension={pageDimension}
-            zoomLevel={zoomLevel}
-            fontFamily={fontFamily}
-            fontSize={fontSize}
-          />
-
-          <HynkiPanel
-            isChatOpen={isChatOpen}
-            isGenerating={isGenerating}
-            inputText={inputText}
-            setInputText={setInputText}
-            chatMessages={chatMessages}
+          <MenuBar
+            docTitle={docTitle}
+            handleTitleChange={handleTitleChange}
+            isStarred={isStarred}
+            setIsStarred={setIsStarred}
+            isMenubarCollapsed={isMenubarCollapsed}
+            setIsMenubarCollapsed={setIsMenubarCollapsed}
             isHistoryOpen={isHistoryOpen}
             setIsHistoryOpen={setIsHistoryOpen}
-            onSendMessage={handleSendMessage}
-            onResetWorkspace={resetWorkspace}
-            onClose={() => setIsChatOpen(false)}
-            onHighlightSection={highlightDocumentSection}
-            onRestoreSnapshot={restoreSnapshot}
-            chatEndRef={chatEndRef}
-            historicalVersions={HISTORICAL_VERSIONS}
+            isChatOpen={isChatOpen}
+            setIsChatOpen={setIsChatOpen}
+            setIsShareModalOpen={setIsShareModalOpen}
+            tags={tags}
+            setTags={setTags}
+            isAddingTag={isAddingTag}
+            setIsAddingTag={setIsAddingTag}
+            newTagVal={newTagVal}
+            setNewTagVal={setNewTagVal}
+            restoreSnapshot={restoreSnapshot}
+            resetWorkspace={resetWorkspace}
+            setInputText={setInputText}
+            setZoomLevel={setZoomLevel}
+            highlightDocumentSection={highlightDocumentSection}
+            isOfflineSaved={isOfflineSaved}
           />
-        </div>
+
+          <FormatToolbar
+            zoomLevel={zoomLevel}
+            setZoomLevel={setZoomLevel}
+            fontFamily={fontFamily}
+            setFontFamily={setFontFamily}
+            fontSize={fontSize}
+            setFontSize={setFontSize}
+            menuSearchQuery={menuSearchQuery}
+            setMenuSearchQuery={setMenuSearchQuery}
+            isMenubarCollapsed={isMenubarCollapsed}
+            setIsMenubarCollapsed={setIsMenubarCollapsed}
+          />
+
+          <div
+            className="flex-1 flex flex-row items-stretch justify-start gap-6 px-4 md:px-8 overflow-hidden min-h-0 bg-[#F1F0EA]"
+            id="side-by-side-workspace-container"
+          >
+            <OutlinePanel
+              outlineData={outlineData}
+              expandedChapters={expandedChapters}
+              setExpandedChapters={setExpandedChapters}
+              selectedPartId={selectedPartId}
+              setSelectedPartId={setSelectedPartId}
+              handleHeadingClick={handleHeadingClick}
+            />
+
+            <DocumentEditor
+              pageDimension={pageDimension}
+              zoomLevel={zoomLevel}
+              fontFamily={fontFamily}
+              fontSize={fontSize}
+            />
+
+            <HynkiPanel
+              isChatOpen={isChatOpen}
+              isGenerating={isGenerating}
+              inputText={inputText}
+              setInputText={setInputText}
+              chatMessages={chatMessages}
+              isHistoryOpen={isHistoryOpen}
+              setIsHistoryOpen={setIsHistoryOpen}
+              onSendMessage={handleSendMessage}
+              onResetWorkspace={resetWorkspace}
+              onClose={() => setIsChatOpen(false)}
+              onHighlightSection={highlightDocumentSection}
+              onRestoreSnapshot={restoreSnapshot}
+              chatEndRef={chatEndRef}
+              historicalVersions={HISTORICAL_VERSIONS}
+            />
+          </div>
+        </EditorProvider>
 
         <ShareModal
           isOpen={isShareModalOpen}

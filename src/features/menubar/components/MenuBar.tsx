@@ -4,13 +4,13 @@ import {
   ChevronRight, FileText, Star, Folder, Cloud, History, MessageSquare,
   Lock, ChevronDown, ChevronUp,
 } from "lucide-react";
+import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import type { DocSnapshot } from "../../../types";
 import { createMenuList } from "../constants";
 import { MenuDropdown } from "./MenuDropdown";
 import { TagsBar } from "./TagsBar";
 
 interface MenuBarProps {
-  editor: any;
   docTitle: string;
   handleTitleChange: (title: string) => void;
   isStarred: boolean;
@@ -37,8 +37,9 @@ interface MenuBarProps {
 }
 
 export function MenuBar(props: MenuBarProps) {
+  const [lexicalEditor] = useLexicalComposerContext();
   const {
-    editor, docTitle, handleTitleChange, isStarred, setIsStarred,
+    docTitle, handleTitleChange, isStarred, setIsStarred,
     isMenubarCollapsed, setIsMenubarCollapsed,
     isHistoryOpen, setIsHistoryOpen, isChatOpen, setIsChatOpen,
     setIsShareModalOpen,
@@ -55,10 +56,10 @@ export function MenuBar(props: MenuBarProps) {
     setMenuCoords(null);
   }, []);
 
-    type MenuKey = typeof menuKeys[number];
+  type MenuKey = typeof menuKeys[number];
   const menuList = useMemo(
     () => createMenuList(
-      editor,
+      lexicalEditor,
       restoreSnapshot,
       setInputText,
       setIsChatOpen,
@@ -69,7 +70,7 @@ export function MenuBar(props: MenuBarProps) {
       isHistoryOpen,
       docTitle
     ),
-    [editor, restoreSnapshot, setInputText, setIsChatOpen, resetWorkspace, setIsHistoryOpen, setZoomLevel, highlightDocumentSection, isHistoryOpen, docTitle]
+    [lexicalEditor, restoreSnapshot, setInputText, setIsChatOpen, resetWorkspace, setIsHistoryOpen, setZoomLevel, highlightDocumentSection, isHistoryOpen, docTitle]
   );
 
   const menuKeys = ["File", "Edit", "View", "Insert", "Format", "Tools", "Hynki", "Extensions", "Help"] as const;

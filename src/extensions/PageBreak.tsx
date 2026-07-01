@@ -2,7 +2,7 @@ import type { EditorConfig, KlassConstructor, LexicalEditor, LexicalNode, Serial
 import { DecoratorNode } from "lexical";
 import type { JSX } from "react";
 
-export const PAGE_BREAK_HEIGHT = 218;
+export const PAGE_BREAK_HEIGHT = 202;
 
 export class PageBreakNode extends DecoratorNode<JSX.Element> {
   declare ['constructor']: KlassConstructor<typeof PageBreakNode>;
@@ -26,6 +26,7 @@ export class PageBreakNode extends DecoratorNode<JSX.Element> {
   createDOM(_config: EditorConfig): HTMLElement {
     const el = document.createElement("div");
     el.setAttribute("data-page-break", "");
+    el.className = "page-break-marker";
     return el;
   }
 
@@ -34,7 +35,7 @@ export class PageBreakNode extends DecoratorNode<JSX.Element> {
   }
 
   decorate(_editor: LexicalEditor, _config: EditorConfig): JSX.Element {
-    return <div className="page-break-marker" />;
+    return <span />;
   }
 
   isInline(): boolean {

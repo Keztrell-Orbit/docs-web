@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
@@ -9,6 +9,7 @@ import { $getRoot } from "lexical";
 import { PAGE_DIMENSIONS } from "../../../types";
 import { $isPageBreakNode } from "../../../extensions/PageBreak";
 import { AutoPageBreakPlugin } from "../../../plugins/AutoPageBreakPlugin";
+import { SelectAllPlugin } from "../../../plugins/SelectAllPlugin";
 
 interface DocumentEditorProps {
   pageDimension: keyof typeof PAGE_DIMENSIONS;
@@ -17,34 +18,29 @@ interface DocumentEditorProps {
   fontSize: number;
 }
 
-function PageBreakCounter({ onPageCount }: { onPageCount: (count: number) => void }) {
-  const [editor] = useLexicalComposerContext();
-
-  useEffect(() => {
-    const updateCount = () => {
-      editor.getEditorState().read(() => {
-        let count = 1;
-        const children = $getRoot().getChildren();
-        for (const child of children) {
-          if ($isPageBreakNode(child)) count++;
-        }
-        onPageCount(count);
-      });
-    };
-    updateCount();
-    const unregister = editor.registerUpdateListener(updateCount);
-    return () => unregister();
-  }, [editor, onPageCount]);
-
-  return null;
-}
-
 export function DocumentEditor({
   pageDimension, zoomLevel, fontFamily, fontSize,
 }: DocumentEditorProps) {
+  const [editor] = useLexicalComposerContext();
   const dim = PAGE_DIMENSIONS[pageDimension];
   const pageH = parseInt(dim.minHeight);
-  const [pageCount, setPageCount] = useState(1);
+
+  const pageCount = useSyncExternalStore(
+    useCallback(
+      (cb) => editor.registerUpdateListener(() => cb()),
+      [editor],
+    ),
+    useCallback(
+      () => editor.getEditorState().read(() => {
+        let count = 1;
+        for (const child of $getRoot().getChildren()) {
+          if ($isPageBreakNode(child)) count++;
+        }
+        return count;
+      }),
+      [editor],
+    ),
+  );
 
   const pageBreakCount = pageCount - 1;
   const totalPageBgHeight = pageCount * pageH + pageBreakCount * 10;
@@ -106,7 +102,7 @@ export function DocumentEditor({
             left: 0,
             width: dim.width,
             minHeight: `${editorMinHeight}px`,
-            padding: "112px 96px 96px 112px",
+            padding: "96px",
             zIndex: 1,
             fontFamily: fontFamily === 'Inter' ? 'var(--font-sans)' : fontFamily === 'Playfair Display' ? 'var(--font-serif)' : fontFamily === 'JetBrains Mono' ? 'var(--font-mono)' : 'sans-serif',
             fontSize: `${fontSize}px`,
@@ -126,11 +122,11 @@ export function DocumentEditor({
               ErrorBoundary={LexicalErrorBoundary}
             />
             <HistoryPlugin />
+            <SelectAllPlugin />
           </div>
         </motion.div>
       </div>
 
-      <PageBreakCounter onPageCount={setPageCount} />
       <AutoPageBreakPlugin
         pageDimension={pageDimension}
         zoomLevel={zoomLevel}

@@ -100,17 +100,17 @@ body {
   margin-bottom: 0.5rem;
 }
 
-/* Page break markers — 96px bottom margin + 10px gap + 112px top margin */
+/* Page break markers — 96px bottom margin + 10px gap + 96px top margin */
 .page-break-marker[data-page-break] {
-  height: 218px;
-  margin-left: -112px;
+  height: 202px;
+  margin-left: -96px;
   margin-right: -96px;
   padding: 0;
   border: none;
   background: linear-gradient(to bottom,
-    white 0, white 112px,
-    #F1F0EA 112px, #F1F0EA 122px,
-    white 122px, white 218px
+    white 0, white 96px,
+    #F1F0EA 96px, #F1F0EA 106px,
+    white 106px, white 202px
   );
   pointer-events: none;
   user-select: none;

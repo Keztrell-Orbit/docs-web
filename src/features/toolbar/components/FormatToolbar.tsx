@@ -91,7 +91,7 @@ export function FormatToolbar({
   }, [editor]);
 
   return (
-    <div className="w-full px-4 pt-0 pb-1.5 md:px-8 md:pt-0 md:pb-2 flex-shrink-0 z-20 flex items-center justify-between gap-2 bg-[#F1F0EA]" id="toolbar-floating-wrapper">
+    <div className="w-full px-4 pt-0 pb-1.5 md:px-8 md:pt-0 md:pb-2 flex-shrink-0 z-20 flex items-center justify-between gap-2 bg-[#F1F0EA]" id="toolbar-floating-wrapper" style={{ marginTop: "6px" }}>
       <div
         className="flex-1 bg-[#FAF9F5] border border-[#E1DFD5] rounded-lg shadow-md px-4 py-2.5 flex flex-nowrap items-center gap-1.5 select-none overflow-x-auto scrollbar-none [&>*]:shrink-0 min-w-0"
         id="formatting-toolbar"

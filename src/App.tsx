@@ -42,7 +42,7 @@ export default function App() {
   const outlineData = useOutline(currentDoc?.content);
 
   const editor = useEditorInit();
-  useAutoPageBreaks(editor, pageDimension);
+  useAutoPageBreaks(editor, pageDimension, zoomLevel);
   useDocSync(editor, currentDoc, docTitle, setDocTitle);
   useChatScroll(chatEndRef, chatMessages, isGenerating);
 

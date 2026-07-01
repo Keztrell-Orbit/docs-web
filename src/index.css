@@ -46,7 +46,6 @@ body {
 /* TipTap ProseMirror Editor Custom Formatting styles */
 .ProseMirror {
   outline: none;
-  min-height: 500px;
   font-family: var(--font-sans);
   font-size: 0.975rem;
   line-height: 1.7;
@@ -100,13 +99,20 @@ body {
   margin-bottom: 0.5rem;
 }
 
-/* Page break markers in the editor — invisible structural nodes */
+/* Page break markers — 96px bottom margin + 10px gap + 96px top margin */
 .page-break-marker[data-page-break] {
-  height: 0;
-  margin: 0;
+  height: 202px;
+  margin-left: -96px;
+  margin-right: -96px;
   padding: 0;
   border: none;
+  background: linear-gradient(to bottom,
+    white 0, white 96px,
+    #F1F0EA 96px, #F1F0EA 106px,
+    white 106px, white 202px
+  );
   pointer-events: none;
+  user-select: none;
 }
 
 .ProseMirror blockquote {

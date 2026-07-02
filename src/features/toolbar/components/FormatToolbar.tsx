@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
 import {
   Search,
   Undo2,
@@ -139,6 +140,69 @@ export function FormatToolbar({
   useClickOutside(highlightPickerRef, () => {
     if (activePicker === "highlight") setActivePicker(null);
   });
+
+  const FONT_SIZES = [8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 32, 36, 42, 48, 56, 64, 72];
+
+  const [isFontSizeDropdownOpen, setIsFontSizeDropdownOpen] = useState(false);
+  const [isFontSizeEditing, setIsFontSizeEditing] = useState(false);
+  const [fontSizeInputValue, setFontSizeInputValue] = useState("");
+  const [fontSizeDropdownPos, setFontSizeDropdownPos] = useState({ top: 0, left: 0 });
+  const fontSizeTriggerRef = useRef<HTMLDivElement>(null);
+  const fontSizeDropdownRef = useRef<HTMLDivElement>(null);
+
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
+  const colorTriggerRef = useRef<HTMLDivElement>(null);
+  const highlightTriggerRef = useRef<HTMLDivElement>(null);
+
+  useClickOutside(fontSizeDropdownRef, () => {
+    setIsFontSizeDropdownOpen(false);
+    setIsFontSizeEditing(false);
+  });
+
+  useEffect(() => {
+    if (isFontSizeDropdownOpen && fontSizeTriggerRef.current) {
+      const rect = fontSizeTriggerRef.current.getBoundingClientRect();
+      setFontSizeDropdownPos({ top: rect.bottom + 4, left: rect.left });
+    }
+  }, [isFontSizeDropdownOpen]);
+
+  useEffect(() => {
+    if ((activePicker === "color" || activePicker === "highlight") && (activePicker === "color" ? colorTriggerRef.current : highlightTriggerRef.current)) {
+      const ref = activePicker === "color" ? colorTriggerRef.current : highlightTriggerRef.current;
+      if (ref) {
+        const rect = ref.getBoundingClientRect();
+        setDropdownPos({ top: rect.bottom + 4, left: rect.left });
+      }
+    }
+  }, [activePicker]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (isFontSizeDropdownOpen) {
+        setIsFontSizeDropdownOpen(false);
+        setIsFontSizeEditing(false);
+      }
+      if (activePicker) {
+        setActivePicker(null);
+      }
+    };
+    window.addEventListener("scroll", handleScroll, true);
+    return () => window.removeEventListener("scroll", handleScroll, true);
+  }, [isFontSizeDropdownOpen, activePicker, setActivePicker]);
+
+  const applyFontSize = useCallback(
+    (size: number) => {
+      const clamped = Math.max(8, Math.min(72, Math.round(size)));
+      editor.update(() => {
+        const selection = $getSelection();
+        if ($isRangeSelection(selection)) {
+          $patchStyleText(selection, { "font-size": `${clamped}px` });
+        }
+      });
+      setFontSize(clamped);
+    },
+    [editor, setFontSize],
+  );
 
   useEffect(() => {
     const update = () => {
@@ -380,7 +444,7 @@ export function FormatToolbar({
 
   return (
     <div
-      className="w-full px-4 pt-0 pb-1.5 md:px-8 md:pt-0 md:pb-2 flex-shrink-0 z-20 flex items-center justify-between gap-2 bg-[#F1F0EA] mt-1.5"
+      className="w-full px-4 pt-0 pb-1.5 md:px-8 md:pt-0 md:pb-2 flex-shrink-0 z-40 flex items-center justify-between gap-2 bg-[#F1F0EA] mt-1.5"
       id="toolbar-floating-wrapper"
     >
       <div
@@ -495,27 +559,72 @@ export function FormatToolbar({
 
         <div className="w-px h-5 bg-gray-300 self-center mx-1" />
 
-        <div
-          className="flex items-center bg-gray-100/80 hover:bg-gray-200 rounded px-1 py-0.5 space-x-1"
-          title="Font size"
-        >
-          <button
-            onClick={() => handleFontSizeChange(-1)}
-            className="px-1 text-xs font-bold text-gray-500 hover:text-gray-800 transition-colors"
-            id="toolbar-fontsize-dec"
+        <div ref={fontSizeTriggerRef}>
+          <div
+            className="flex items-center bg-gray-100/80 hover:bg-gray-200 rounded px-1 py-0.5 space-x-1"
+            title="Font size"
           >
-            -
-          </button>
-          <span className="text-xs font-semibold text-gray-700 min-w-[16px] text-center select-none">
-            {displayFontSize}
-          </span>
-          <button
-            onClick={() => handleFontSizeChange(1)}
-            className="px-1 text-xs font-bold text-gray-500 hover:text-gray-800 transition-colors"
-            id="toolbar-fontsize-inc"
-          >
-            +
-          </button>
+            <button
+              onClick={() => handleFontSizeChange(-1)}
+              className="px-1 text-xs font-bold text-gray-500 hover:text-gray-800 transition-colors"
+              id="toolbar-fontsize-dec"
+            >
+              -
+            </button>
+            {isFontSizeEditing ? (
+              <input
+                type="number"
+                min={8}
+                max={72}
+                value={fontSizeInputValue}
+                onChange={(e) => setFontSizeInputValue(e.target.value)}
+                onBlur={() => {
+                  const val = parseInt(fontSizeInputValue, 10);
+                  if (!isNaN(val)) applyFontSize(val);
+                  setIsFontSizeEditing(false);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    const val = parseInt(fontSizeInputValue, 10);
+                    if (!isNaN(val)) applyFontSize(val);
+                    setIsFontSizeEditing(false);
+                  }
+                  if (e.key === "Escape") {
+                    setIsFontSizeEditing(false);
+                  }
+                }}
+                autoFocus
+                className="w-9 text-xs font-semibold text-gray-700 text-center bg-transparent border-none outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              />
+            ) : (
+              <span
+                className="text-xs font-semibold text-gray-700 min-w-[16px] text-center select-none cursor-pointer"
+                onClick={() => {
+                  setFontSizeInputValue(String(displayFontSize));
+                  setIsFontSizeEditing(true);
+                  setIsFontSizeDropdownOpen(false);
+                }}
+              >
+                {displayFontSize}
+              </span>
+            )}
+            <button
+              onClick={() => handleFontSizeChange(1)}
+              className="px-1 text-xs font-bold text-gray-500 hover:text-gray-800 transition-colors"
+              id="toolbar-fontsize-inc"
+            >
+              +
+            </button>
+            <button
+              onClick={() => {
+                setIsFontSizeDropdownOpen(!isFontSizeDropdownOpen);
+                setIsFontSizeEditing(false);
+              }}
+              className="px-0.5 text-xs text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <ChevronDown size={12} />
+            </button>
+          </div>
         </div>
 
         <div className="w-px h-5 bg-gray-300 self-center mx-1" />
@@ -553,7 +662,7 @@ export function FormatToolbar({
           <StrikethroughIcon size={14} />
         </button>
 
-        <div className="relative">
+        <div ref={colorTriggerRef}>
           <button
             onClick={() =>
               setActivePicker(activePicker === "color" ? null : "color")
@@ -564,25 +673,9 @@ export function FormatToolbar({
           >
             <Baseline size={14} />
           </button>
-          {activePicker === "color" && (
-            <div
-              ref={colorPickerRef}
-              className="absolute top-full left-0 mt-1 bg-white border border-[#E1DFD5] rounded-lg shadow-lg p-2 z-50 grid grid-cols-4 gap-1.5 min-w-[160px]"
-            >
-              {TEXT_COLORS.map((c) => (
-                <button
-                  key={c.value}
-                  onClick={() => applyColor(c.value)}
-                  className="w-7 h-7 rounded border border-gray-200 hover:scale-110 transition-transform cursor-pointer"
-                  style={{ backgroundColor: c.value || "#ffffff" }}
-                  title={c.label}
-                />
-              ))}
-            </div>
-          )}
         </div>
 
-        <div className="relative">
+        <div ref={highlightTriggerRef}>
           <button
             onClick={() =>
               setActivePicker(activePicker === "highlight" ? null : "highlight")
@@ -593,22 +686,6 @@ export function FormatToolbar({
           >
             <Highlighter size={14} />
           </button>
-          {activePicker === "highlight" && (
-            <div
-              ref={highlightPickerRef}
-              className="absolute top-full left-0 mt-1 bg-white border border-[#E1DFD5] rounded-lg shadow-lg p-2 z-50 grid grid-cols-4 gap-1.5 min-w-[160px]"
-            >
-              {HIGHLIGHT_COLORS.map((c) => (
-                <button
-                  key={c.value}
-                  onClick={() => applyHighlight(c.value)}
-                  className="w-7 h-7 rounded border border-gray-200 hover:scale-110 transition-transform cursor-pointer"
-                  style={{ backgroundColor: c.value || "#ffffff" }}
-                  title={c.label}
-                />
-              ))}
-            </div>
-          )}
         </div>
 
         <div className="w-px h-5 bg-gray-300 self-center mx-1" />
@@ -688,6 +765,70 @@ export function FormatToolbar({
           <ListOrdered size={14} />
         </button>
       </div>
+
+      {isFontSizeDropdownOpen && createPortal(
+        <div
+          ref={fontSizeDropdownRef}
+          className="bg-white border border-[#E1DFD5] rounded-lg shadow-lg z-[100] max-h-48 overflow-y-auto min-w-[80px] py-1"
+          style={{ position: 'fixed', top: fontSizeDropdownPos.top, left: fontSizeDropdownPos.left }}
+        >
+          {FONT_SIZES.map((size) => (
+            <button
+              key={size}
+              onClick={() => {
+                applyFontSize(size);
+                setIsFontSizeDropdownOpen(false);
+              }}
+              className={`w-full text-left px-3 py-1 text-xs hover:bg-gray-100 transition-colors ${
+                size === displayFontSize
+                  ? "bg-gray-100 font-semibold text-gray-900"
+                  : "text-gray-600"
+              }`}
+            >
+              {size}
+            </button>
+          ))}
+        </div>,
+        document.body
+      )}
+
+      {activePicker === "color" && createPortal(
+        <div
+          ref={colorPickerRef}
+          className="bg-white border border-[#E1DFD5] rounded-lg shadow-lg p-2 z-[100] grid grid-cols-4 gap-1.5 min-w-[160px]"
+          style={{ position: 'fixed', top: dropdownPos.top, left: dropdownPos.left }}
+        >
+          {TEXT_COLORS.map((c) => (
+            <button
+              key={c.value}
+              onClick={() => applyColor(c.value)}
+              className="w-7 h-7 rounded border border-gray-200 hover:scale-110 transition-transform cursor-pointer"
+              style={{ backgroundColor: c.value || "#ffffff" }}
+              title={c.label}
+            />
+          ))}
+        </div>,
+        document.body
+      )}
+
+      {activePicker === "highlight" && createPortal(
+        <div
+          ref={highlightPickerRef}
+          className="bg-white border border-[#E1DFD5] rounded-lg shadow-lg p-2 z-[100] grid grid-cols-4 gap-1.5 min-w-[160px]"
+          style={{ position: 'fixed', top: dropdownPos.top, left: dropdownPos.left + 40 }}
+        >
+          {HIGHLIGHT_COLORS.map((c) => (
+            <button
+              key={c.value}
+              onClick={() => applyHighlight(c.value)}
+              className="w-7 h-7 rounded border border-gray-200 hover:scale-110 transition-transform cursor-pointer"
+              style={{ backgroundColor: c.value || "#ffffff" }}
+              title={c.label}
+            />
+          ))}
+        </div>,
+        document.body
+      )}
 
       {isMenubarCollapsed && (
         <button

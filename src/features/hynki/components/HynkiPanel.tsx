@@ -45,10 +45,10 @@ export function HynkiPanel({
 
   return (
     <div
-      className="w-[300px] flex-shrink-0 bg-[#FAF9F5] text-stone-800 flex flex-col border border-[#E1DFD5] rounded-none shadow-[0_4px_20px_-2px_rgba(0,0,0,0.08)] overflow-hidden h-full z-10"
+      className="w-[300px] flex-shrink-0 bg-[#F1F0EA] text-stone-800 flex flex-col rounded-none  overflow-hidden h-full z-10"
       id="right-chat-pane"
     >
-      <div className="h-14 px-4 border-b border-[#E1DFD5]/60 flex items-center justify-between flex-shrink-0" id="chat-header-toolbar">
+      <div className="h-14 px-4 flex items-center justify-between flex-shrink-0" id="chat-header-toolbar">
         <div className="flex items-center space-x-2">
           <Sparkle size={16} className="text-amber-700" />
           <span className="text-xs font-mono uppercase tracking-widest text-stone-500">Hynki</span>
@@ -72,7 +72,7 @@ export function HynkiPanel({
           </button>
           <button
             onClick={onClose}
-            className="hover:text-gray-900 transition-colors p-1 rounded-none ml-1 border-l border-[#E1DFD5]/60 pl-2"
+            className="hover:text-gray-900 transition-colors p-1 rounded-none ml-1 pl-2"
             title="Close Hynki"
             id="action-close-chat"
           >

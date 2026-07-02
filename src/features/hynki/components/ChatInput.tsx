@@ -9,8 +9,8 @@ interface ChatInputProps {
 
 export function ChatInput({ inputText, setInputText, isGenerating, onSubmit }: ChatInputProps) {
   return (
-    <form onSubmit={onSubmit} className="p-4 border-t border-[#E1DFD5]/60 flex-shrink-0 bg-[#F1F0EA]/50" id="chat-input-form">
-      <div className="bg-white rounded-none flex flex-col p-2 border border-[#E1DFD5] focus-within:border-stone-400 focus-within:ring-2 focus-within:ring-stone-100 transition-all shadow-xs" id="input-container-box">
+    <form onSubmit={onSubmit} className="p-4 flex-shrink-0 bg-[#F1F0EA]" id="chat-input-form">
+      <div className="bg-white rounded-none flex flex-col p-2 focus-within:ring-2 focus-within:ring-stone-100 transition-all shadow-xs" id="input-container-box">
         <input
           type="text"
           value={inputText}
@@ -20,7 +20,7 @@ export function ChatInput({ inputText, setInputText, isGenerating, onSubmit }: C
           disabled={isGenerating}
           id="input-text-field"
         />
-        <div className="flex items-center justify-between mt-2 pt-2 border-t border-stone-100 px-1" id="input-toolbar-row">
+        <div className="flex items-center justify-between mt-2 pt-2 px-1" id="input-toolbar-row">
           <div className="flex items-center space-x-1 text-stone-400">
             <button type="button" className="p-1.5 hover:text-stone-700 hover:bg-[#F1F0EA] rounded-none transition-colors text-stone-400" title="Attach asset (not implemented)" id="btn-attach">
               <Paperclip size={14} />

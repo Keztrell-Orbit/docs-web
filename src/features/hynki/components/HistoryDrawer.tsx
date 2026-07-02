@@ -1,4 +1,4 @@
-import { X, ChevronRight } from "lucide-react";
+import { X, CaretRight } from "@phosphor-icons/react";
 import type { DocSnapshot } from "../../../types";
 
 interface HistoryDrawerProps {
@@ -27,13 +27,13 @@ export function HistoryDrawer({ isOpen, onClose, versions, onRestore }: HistoryD
           <button
             key={i}
             onClick={() => onRestore(v)}
-            className="w-full text-left text-xs p-2.5 rounded-md bg-white hover:bg-[#F1F0EA] transition-colors flex items-center justify-between border border-[#E1DFD5] hover:border-stone-300 shadow-xs"
+            className="w-full text-left text-xs p-2.5 rounded-none bg-white hover:bg-[#F1F0EA] transition-colors flex items-center justify-between border border-[#E1DFD5] hover:border-stone-300 shadow-xs"
           >
             <div className="truncate pr-2">
               <div className="font-medium text-stone-700 truncate">{v.label}</div>
               <div className="text-[10px] text-stone-400 font-mono mt-0.5">{v.timestamp}</div>
             </div>
-            <ChevronRight size={14} className="text-stone-400 flex-shrink-0" />
+            <CaretRight size={14} className="text-stone-400 flex-shrink-0" />
           </button>
         ))}
       </div>

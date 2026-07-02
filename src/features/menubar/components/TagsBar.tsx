@@ -1,4 +1,4 @@
-import { Tag, Plus, X } from "lucide-react";
+import { Tag, Plus, X } from "@phosphor-icons/react";
 
 interface TagsBarProps {
   tags: string[];
@@ -24,7 +24,7 @@ function getTagColor(tag: string): string {
 export function TagsBar({ tags, setTags, isAddingTag, setIsAddingTag, newTagVal, setNewTagVal }: TagsBarProps) {
   return (
     <div className="flex items-center gap-1.5 flex-nowrap overflow-x-auto scrollbar-none shrink-0" id="menubar-tags-bar">
-      <div className="p-1 text-stone-400 bg-stone-200/30 rounded-md" title="Interactive Document Tags">
+      <div className="p-1 text-stone-400 bg-stone-200/30 rounded-none" title="Interactive Document Tags">
         <Tag size={13} />
       </div>
 
@@ -34,7 +34,7 @@ export function TagsBar({ tags, setTags, isAddingTag, setIsAddingTag, newTagVal,
           className="flex items-center bg-white hover:bg-stone-100 border border-[#E1DFD5]/70 rounded px-2 py-0.5 text-stone-700 text-[11px] font-sans transition-colors"
           id={`document-tag-${tag}`}
         >
-          <span className={`w-1 h-3.5 rounded-sm ${getTagColor(tag)} mr-1.5`} />
+          <span className={`w-1 h-3.5 rounded-none ${getTagColor(tag)} mr-1.5`} />
           <span className="font-medium mr-1.5">{tag}</span>
           <button
             onClick={() => setTags(tags.filter(t => t !== tag))}
@@ -75,7 +75,7 @@ export function TagsBar({ tags, setTags, isAddingTag, setIsAddingTag, newTagVal,
           className="p-1 rounded-full text-[#b03060] hover:bg-[#b03060]/10 transition-colors cursor-pointer flex items-center justify-center border border-dashed border-[#b03060]/30 ml-1"
           title="Add a tag to document"
         >
-          <Plus size={12} strokeWidth={2.5} />
+          <Plus size={12} weight="bold" />
         </button>
       )}
     </div>

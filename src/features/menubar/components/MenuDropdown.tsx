@@ -13,7 +13,7 @@ interface MenuDropdownProps {
 export function MenuDropdown({ items, coords, onClose, menuKey }: MenuDropdownProps) {
   return (
     <div
-      className="fixed w-56 bg-white border border-[#E1DFD5] rounded-lg shadow-xl py-1.5 z-50 animate-fade-in"
+      className="fixed w-56 bg-white border border-[#E1DFD5] rounded-none shadow-xl py-1.5 z-50 animate-fade-in"
       style={{ top: `${coords.top + 4}px`, left: `${coords.left}px` }}
       id={`menu-dropdown-${menuKey}`}
     >

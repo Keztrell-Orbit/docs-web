@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "motion/react";
-import { X, Check, Lock } from "lucide-react";
+import { X, Check, Lock } from "@phosphor-icons/react";
 
 interface ShareModalProps {
   isOpen: boolean;
@@ -37,7 +37,7 @@ export function ShareModal({
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-[#FAF9F5] border border-[#E1DFD5] w-full max-w-md rounded-xl shadow-2xl overflow-hidden text-stone-800"
+            className="bg-[#FAF9F5] border border-[#E1DFD5] w-full max-w-md rounded-none shadow-2xl overflow-hidden text-stone-800"
             id="share-modal-container"
           >
             <div className="p-5 border-b border-[#E1DFD5]/60 flex items-center justify-between bg-white">
@@ -59,12 +59,12 @@ export function ShareModal({
                     placeholder="Enter email address..."
                     value={shareEmail}
                     onChange={(e) => setShareEmail(e.target.value)}
-                    className="flex-1 bg-white border border-[#E1DFD5] rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 text-stone-700 font-sans"
+                    className="flex-1 bg-white border border-[#E1DFD5] rounded-none px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 text-stone-700 font-sans"
                   />
                   <select
                     value={shareRole}
                     onChange={(e) => setShareRole(e.target.value as any)}
-                    className="bg-white border border-[#E1DFD5] rounded-lg px-2 py-2 text-xs text-stone-600 focus:outline-none"
+                    className="bg-white border border-[#E1DFD5] rounded-none px-2 py-2 text-xs text-stone-600 focus:outline-none"
                   >
                     <option value="viewer">Viewer</option>
                     <option value="commenter">Commenter</option>
@@ -108,7 +108,7 @@ export function ShareModal({
                 <span className="text-xs font-semibold text-stone-500 font-mono uppercase tracking-wider block">General access</span>
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-2.5">
-                    <div className="p-1.5 bg-blue-50 text-blue-600 rounded-lg mt-0.5">
+                    <div className="p-1.5 bg-blue-50 text-blue-600 rounded-none mt-0.5">
                       <Lock size={14} />
                     </div>
                     <div className="flex flex-col">
@@ -123,7 +123,7 @@ export function ShareModal({
                       setShareLinkCopied(true);
                       setTimeout(() => setShareLinkCopied(false), 2000);
                     }}
-                    className={`text-xs px-3 py-1.5 rounded-lg border transition-all flex items-center gap-1 cursor-pointer font-sans font-semibold ${
+                    className={`text-xs px-3 py-1.5 rounded-none border transition-all flex items-center gap-1 cursor-pointer font-sans font-semibold ${
                       shareLinkCopied
                         ? "bg-emerald-50 text-emerald-600 border-emerald-200 animate-pulse"
                         : "bg-white text-stone-700 border-[#E1DFD5] hover:bg-stone-50"
@@ -156,7 +156,7 @@ export function ShareModal({
                   }
                   handleClose();
                 }}
-                className="px-4 py-1.5 text-xs text-white bg-blue-600 hover:bg-blue-700 font-semibold rounded-lg shadow-xs transition-colors cursor-pointer font-sans"
+                className="px-4 py-1.5 text-xs text-white bg-blue-600 hover:bg-blue-700 font-semibold rounded-none shadow-xs transition-colors cursor-pointer font-sans"
               >
                 Done
               </button>

@@ -1,4 +1,4 @@
-import { Sparkles, History, RefreshCcw, X } from "lucide-react";
+import { Sparkle, ClockCounterClockwise, ArrowClockwise, X } from "@phosphor-icons/react";
 import type { DocSnapshot } from "../../../types";
 import { HistoryDrawer } from "./HistoryDrawer";
 import { ChatMessages } from "./ChatMessages";
@@ -45,34 +45,34 @@ export function HynkiPanel({
 
   return (
     <div
-      className="w-[300px] flex-shrink-0 bg-[#FAF9F5] text-stone-800 flex flex-col border border-[#E1DFD5] rounded-lg shadow-[0_4px_20px_-2px_rgba(0,0,0,0.08)] overflow-hidden h-full z-10"
+      className="w-[300px] flex-shrink-0 bg-[#FAF9F5] text-stone-800 flex flex-col border border-[#E1DFD5] rounded-none shadow-[0_4px_20px_-2px_rgba(0,0,0,0.08)] overflow-hidden h-full z-10"
       id="right-chat-pane"
     >
       <div className="h-14 px-4 border-b border-[#E1DFD5]/60 flex items-center justify-between flex-shrink-0" id="chat-header-toolbar">
         <div className="flex items-center space-x-2">
-          <Sparkles size={16} className="text-amber-700" />
+          <Sparkle size={16} className="text-amber-700" />
           <span className="text-xs font-mono uppercase tracking-widest text-stone-500">Hynki</span>
         </div>
         <div className="flex items-center space-x-4 text-stone-500" id="chat-action-icons">
           <button
             onClick={() => setIsHistoryOpen(!isHistoryOpen)}
-            className={`hover:text-gray-900 transition-colors p-1 rounded-md ${isHistoryOpen ? "text-stone-800 bg-[#EAE8DD]" : ""}`}
+            className={`hover:text-gray-900 transition-colors p-1 rounded-none ${isHistoryOpen ? "text-stone-800 bg-[#EAE8DD]" : ""}`}
             title="Document History Snapshots"
             id="action-history"
           >
-            <History size={17} />
+            <ClockCounterClockwise size={17} />
           </button>
           <button
             onClick={onResetWorkspace}
-            className="hover:text-gray-900 transition-colors p-1 rounded-md"
+            className="hover:text-gray-900 transition-colors p-1 rounded-none"
             title="Reset Workspace"
             id="action-reset"
           >
-            <RefreshCcw size={15} />
+            <ArrowClockwise size={15} />
           </button>
           <button
             onClick={onClose}
-            className="hover:text-gray-900 transition-colors p-1 rounded-md ml-1 border-l border-[#E1DFD5]/60 pl-2"
+            className="hover:text-gray-900 transition-colors p-1 rounded-none ml-1 border-l border-[#E1DFD5]/60 pl-2"
             title="Close Hynki"
             id="action-close-chat"
           >

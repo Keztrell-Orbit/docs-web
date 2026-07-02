@@ -2,15 +2,15 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import {
-  Bold,
-  Italic,
-  Underline,
-  Strikethrough as StrikethroughIcon,
-  Baseline,
+  TextB,
+  TextItalic,
+  TextUnderline,
+  TextStrikethrough as StrikethroughIcon,
+  TextT,
   Highlighter,
-  Sparkles,
-  ChevronDown,
-} from "lucide-react";
+  Sparkle,
+  CaretDown,
+} from "@phosphor-icons/react";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import {
   $getSelection,
@@ -67,8 +67,8 @@ export function FloatingFormatToolbar() {
   });
   const [currentFontFamily, setCurrentFontFamily] = useState("Inter");
   const [currentFontSize, setCurrentFontSize] = useState(14);
-  const [currentColor, setCurrentColor] = useState<string | null>(null);
-  const [currentHighlight, setCurrentHighlight] = useState<string | null>(null);
+  const [, setCurrentColor] = useState<string | null>(null);
+  const [, setCurrentHighlight] = useState<string | null>(null);
 
   const [activePopup, setActivePopup] = useState<"color" | "highlight" | "font-size" | "ai" | null>(null);
   const [isFontSizeEditing, setIsFontSizeEditing] = useState(false);
@@ -156,17 +156,18 @@ export function FloatingFormatToolbar() {
         if (range.collapsed) return false;
         const rect = range.getBoundingClientRect();
         const toolbarHeight = 32;
+        const posLeft = Math.min(rect.left, window.innerWidth - 300);
         if (rect.top > toolbarHeight + CARET_SIZE + GAP + 4) {
           setShowBelow(false);
           setPosition({
             top: rect.top - toolbarHeight - CARET_SIZE - GAP,
-            left: rect.left + rect.width / 2,
+            left: posLeft,
           });
         } else {
           setShowBelow(true);
           setPosition({
             top: rect.bottom + GAP + CARET_SIZE,
-            left: rect.left + rect.width / 2,
+            left: posLeft,
           });
         }
         return true;
@@ -174,15 +175,6 @@ export function FloatingFormatToolbar() {
         return false;
       }
     }
-    function handleSelectionChange() {
-      const hasSelection = computePosition();
-      if (hasSelection) {
-        if (!isVisibleRef.current) setIsVisible(true);
-      } else if (!isEditingRef.current && !activePopupRef.current) {
-        if (isVisibleRef.current) setIsVisible(false);
-      }
-    }
-
     function handleSelectionChange() {
       const hasSelection = computePosition();
       if (hasSelection) {
@@ -337,8 +329,8 @@ export function FloatingFormatToolbar() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: showBelow ? -8 : 8, scale: 0.95 }}
               transition={{ type: "spring", duration: 0.25, bounce: 0.15 }}
-              className="flex items-center gap-0.5 px-2 py-1 bg-[#FAF9F5] rounded-lg shadow-lg border border-[#E1DFD5]"
-              style={{ position: 'fixed', top: position.top, left: position.left, transform: 'translateX(-50%)', zIndex: 99999 }}
+              className="flex items-center gap-0.5 px-2 py-1 bg-[#FAF9F5] rounded-none shadow-lg border border-[#E1DFD5]"
+              style={{ position: 'fixed', top: position.top, left: position.left, zIndex: 99999 }}
             >
                 <select
                   value={currentFontFamily}
@@ -395,7 +387,7 @@ export function FloatingFormatToolbar() {
                     onClick={() => togglePopup("font-size")}
                     className={`p-0.5 rounded ${activePopup === "font-size" ? 'text-stone-700' : 'text-stone-400 hover:text-stone-600'}`}
                   >
-                    <ChevronDown size={10} />
+                    <CaretDown size={10} />
                   </button>
                 </div>
 
@@ -407,7 +399,7 @@ export function FloatingFormatToolbar() {
                   className={`p-1 rounded transition-colors ${activeFormats.bold ? 'bg-stone-200 text-stone-800' : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'}`}
                   title="Bold"
                 >
-                  <Bold size={13} />
+                  <TextB size={13} />
                 </button>
                 <button
                   onMouseDown={focusEditor}
@@ -415,7 +407,7 @@ export function FloatingFormatToolbar() {
                   className={`p-1 rounded transition-colors ${activeFormats.italic ? 'bg-stone-200 text-stone-800' : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'}`}
                   title="Italic"
                 >
-                  <Italic size={13} />
+                  <TextItalic size={13} />
                 </button>
                 <button
                   onMouseDown={focusEditor}
@@ -423,7 +415,7 @@ export function FloatingFormatToolbar() {
                   className={`p-1 rounded transition-colors ${activeFormats.underline ? 'bg-stone-200 text-stone-800' : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'}`}
                   title="Underline"
                 >
-                  <Underline size={13} />
+                  <TextUnderline size={13} />
                 </button>
                 <button
                   onMouseDown={focusEditor}
@@ -443,7 +435,7 @@ export function FloatingFormatToolbar() {
                     className={`p-1 rounded transition-colors ${activePopup === "color" ? 'bg-stone-200 text-stone-800' : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'}`}
                     title="Text Color"
                   >
-                    <Baseline size={13} />
+                    <TextT size={13} />
                   </button>
                 </div>
 
@@ -466,14 +458,14 @@ export function FloatingFormatToolbar() {
                   className={`p-1 rounded transition-colors ${activePopup === "ai" ? 'bg-stone-200 text-amber-600' : 'text-amber-600/70 hover:text-amber-600 hover:bg-gray-100'}`}
                   title="AI Rewrite"
                 >
-                  <Sparkles size={14} />
+                  <Sparkle size={14} />
                 </button>
 
                 {!showBelow && (
-                  <div className="absolute -bottom-[6px] left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-r-[6px] border-t-[6px] border-transparent border-t-[#FAF9F5]" />
+                  <div className="absolute -bottom-[6px] left-0 w-0 h-0 border-l-[6px] border-r-[6px] border-t-[6px] border-transparent border-t-stone-400" />
                 )}
                 {showBelow && (
-                  <div className="absolute -top-[6px] left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-r-[6px] border-b-[6px] border-transparent border-b-[#FAF9F5]" />
+                  <div className="absolute -top-[6px] left-0 w-0 h-0 border-l-[6px] border-r-[6px] border-b-[6px] border-transparent border-b-stone-400" />
                 )}
               </motion.div>
             )}
@@ -483,7 +475,7 @@ export function FloatingFormatToolbar() {
 
       {activePopup === "font-size" && createPortal(
         <div
-          className="bg-white border border-[#E1DFD5] rounded-lg shadow-lg z-[100] max-h-40 overflow-y-auto min-w-[64px] py-1"
+          className="bg-white border border-[#E1DFD5] rounded-none shadow-lg z-[100] max-h-40 overflow-y-auto min-w-[64px] py-1"
           style={{ position: 'fixed', top: fontSizeDropdownPos.top, left: fontSizeDropdownPos.left }}
         >
           {FONT_SIZES.map((size) => (
@@ -506,7 +498,7 @@ export function FloatingFormatToolbar() {
 
       {activePopup === "color" && createPortal(
         <div
-          className="bg-white border border-[#E1DFD5] rounded-lg shadow-lg p-2 z-[100] grid grid-cols-4 gap-1.5 min-w-[152px]"
+          className="bg-white border border-[#E1DFD5] rounded-none shadow-lg p-2 z-[100] grid grid-cols-4 gap-1.5 min-w-[152px]"
           style={{ position: 'fixed', top: colorPickerPos.top, left: colorPickerPos.left }}
         >
           {TEXT_COLORS.map((c) => (
@@ -525,7 +517,7 @@ export function FloatingFormatToolbar() {
 
       {activePopup === "highlight" && createPortal(
         <div
-          className="bg-white border border-[#E1DFD5] rounded-lg shadow-lg p-2 z-[100] grid grid-cols-4 gap-1.5 min-w-[152px]"
+          className="bg-white border border-[#E1DFD5] rounded-none shadow-lg p-2 z-[100] grid grid-cols-4 gap-1.5 min-w-[152px]"
           style={{ position: 'fixed', top: highlightPickerPos.top, left: highlightPickerPos.left }}
         >
           {HIGHLIGHT_COLORS.map((c) => (

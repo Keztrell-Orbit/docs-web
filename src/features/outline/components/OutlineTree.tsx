@@ -1,4 +1,4 @@
-import { ChevronDown } from "lucide-react";
+import { CaretDown } from "@phosphor-icons/react";
 import type { OutlineChapter } from "../../../types";
 
 interface OutlineTreeProps {
@@ -31,7 +31,7 @@ export function OutlineTree({
                 toggleChapter(chapter.id);
                 onHeadingClick(chapter.title);
               }}
-              className="flex items-center justify-between py-2 px-1.5 rounded-lg hover:bg-[#F1F0EA]/50 cursor-pointer transition-colors group"
+              className="flex items-center justify-between py-2 px-1.5 rounded-none hover:bg-[#F1F0EA]/50 cursor-pointer transition-colors group"
               id={`tree-chapter-row-${chapter.id}`}
             >
               <div className="flex items-center min-w-0">
@@ -41,7 +41,7 @@ export function OutlineTree({
                 </span>
               </div>
               {chapter.parts && chapter.parts.length > 0 && (
-                <ChevronDown
+                <CaretDown
                   size={14}
                   className={`text-gray-400 group-hover:text-gray-600 transition-transform duration-200 flex-shrink-0 ${isExpanded ? "rotate-180" : ""}`}
                 />
@@ -59,7 +59,7 @@ export function OutlineTree({
                         setSelectedPartId(part.id);
                         onHeadingClick(part.title);
                       }}
-                      className={`flex items-center py-1.5 px-2 rounded-md cursor-pointer transition-colors ${
+                      className={`flex items-center py-1.5 px-2 rounded-none cursor-pointer transition-colors ${
                         isSelected
                           ? "bg-[#EAE8DD] text-stone-800 font-semibold"
                           : "hover:bg-[#F1F0EA]/30 text-gray-500 hover:text-gray-800"

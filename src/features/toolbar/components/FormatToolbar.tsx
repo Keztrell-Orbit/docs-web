@@ -1,27 +1,27 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import {
-  Search,
-  Undo2,
-  Redo2,
+  MagnifyingGlass,
+  ArrowUUpLeft,
+  ArrowUUpRight,
   Printer,
-  Paintbrush,
-  Bold,
-  Italic,
-  Underline,
-  Strikethrough as StrikethroughIcon,
-  AlignLeft,
-  AlignCenter,
-  AlignRight,
-  AlignJustify,
-  List,
-  ListOrdered,
-  Baseline,
-  Highlighter,
-  Link as LinkIcon,
-  Image as ImageIcon,
-  ChevronDown,
-} from "lucide-react";
+  PaintBrush,
+   TextB,
+   TextItalic,
+   TextUnderline,
+   TextStrikethrough as StrikethroughIcon,
+   TextAlignLeft,
+   TextAlignCenter,
+   TextAlignRight,
+   TextAlignJustify,
+   ListBullets,
+   ListNumbers,
+   TextT,
+   Highlighter,
+   Link as LinkIcon,
+   Image as ImageIcon,
+   CaretDown,
+} from "@phosphor-icons/react";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import {
   $getSelection,
@@ -448,11 +448,11 @@ export function FormatToolbar({
       id="toolbar-floating-wrapper"
     >
       <div
-        className="flex-1 bg-[#FAF9F5] border border-[#E1DFD5] rounded-lg shadow-md px-4 py-1 flex flex-nowrap items-center gap-1.5 select-none overflow-x-auto scrollbar-none [&>*]:shrink-0 min-w-0"
+        className="flex-1 bg-[#FAF9F5] border border-[#E1DFD5] rounded-none shadow-md px-4 py-1 flex flex-nowrap items-center gap-1.5 select-none overflow-x-auto scrollbar-none [&>*]:shrink-0 min-w-0"
         id="formatting-toolbar"
       >
-        <div className="relative flex items-center bg-[#F1F0EA]/60 border border-[#E1DFD5] hover:border-stone-400 rounded-md px-2.5 py-1 text-stone-600 focus-within:ring-1 focus-within:ring-stone-400 max-w-[120px] transition-all">
-          <Search size={13} className="text-stone-400 mr-1 flex-shrink-0" />
+        <div className="relative flex items-center bg-[#F1F0EA]/60 border border-[#E1DFD5] hover:border-stone-400 rounded-none px-2.5 py-1 text-stone-600 focus-within:ring-1 focus-within:ring-stone-400 max-w-[120px] transition-all">
+          <MagnifyingGlass size={13} className="text-stone-400 mr-1 flex-shrink-0" />
           <input
             type="text"
             placeholder="Menus"
@@ -472,7 +472,7 @@ export function FormatToolbar({
           title="Undo"
           id="toolbar-action-undo"
         >
-          <Undo2 size={14} />
+          <ArrowUUpLeft size={14} />
         </button>
         <button
           onClick={() => editor.dispatchCommand(REDO_COMMAND, undefined)}
@@ -480,7 +480,7 @@ export function FormatToolbar({
           title="Redo"
           id="toolbar-action-redo"
         >
-          <Redo2 size={14} />
+          <ArrowUUpRight size={14} />
         </button>
         <button
           onClick={() => window.print()}
@@ -498,7 +498,7 @@ export function FormatToolbar({
           title="Format Painter"
           id="toolbar-action-paintbrush"
         >
-          <Paintbrush size={14} />
+          <PaintBrush size={14} />
         </button>
 
         <div className="w-px h-5 bg-gray-300 self-center mx-1" />
@@ -622,7 +622,7 @@ export function FormatToolbar({
               }}
               className="px-0.5 text-xs text-gray-400 hover:text-gray-600 transition-colors"
             >
-              <ChevronDown size={12} />
+              <CaretDown size={12} />
             </button>
           </div>
         </div>
@@ -635,7 +635,7 @@ export function FormatToolbar({
           title="Bold"
           id="toolbar-style-bold"
         >
-          <Bold size={14} />
+          <TextB size={14} />
         </button>
         <button
           onClick={() => toggleFormat("italic")}
@@ -643,7 +643,7 @@ export function FormatToolbar({
           title="Italic"
           id="toolbar-style-italic"
         >
-          <Italic size={14} />
+          <TextItalic size={14} />
         </button>
         <button
           onClick={() => toggleFormat("underline")}
@@ -651,7 +651,7 @@ export function FormatToolbar({
           title="Underline"
           id="toolbar-style-underline"
         >
-          <Underline size={14} />
+          <TextUnderline size={14} />
         </button>
         <button
           onClick={() => toggleFormat("strikethrough")}
@@ -671,7 +671,7 @@ export function FormatToolbar({
             title="Text Color"
             id="toolbar-style-color"
           >
-            <Baseline size={14} />
+            <TextT size={14} />
           </button>
         </div>
 
@@ -715,7 +715,7 @@ export function FormatToolbar({
           title="Align Left"
           id="toolbar-align-left"
         >
-          <AlignLeft size={14} />
+          <TextAlignLeft size={14} />
         </button>
         <button
           onClick={() => alignText("center")}
@@ -723,7 +723,7 @@ export function FormatToolbar({
           title="Align Center"
           id="toolbar-align-center"
         >
-          <AlignCenter size={14} />
+          <TextAlignCenter size={14} />
         </button>
         <button
           onClick={() => alignText("right")}
@@ -731,7 +731,7 @@ export function FormatToolbar({
           title="Align Right"
           id="toolbar-align-right"
         >
-          <AlignRight size={14} />
+          <TextAlignRight size={14} />
         </button>
         <button
           onClick={() => alignText("justify")}
@@ -739,7 +739,7 @@ export function FormatToolbar({
           title="Justify"
           id="toolbar-align-justify"
         >
-          <AlignJustify size={14} />
+          <TextAlignJustify size={14} />
         </button>
 
         <div className="w-px h-5 bg-gray-300 self-center mx-1" />
@@ -752,7 +752,7 @@ export function FormatToolbar({
           title="Bulleted List"
           id="toolbar-action-bullet"
         >
-          <List size={14} />
+          <ListBullets size={14} />
         </button>
         <button
           onClick={() =>
@@ -762,14 +762,14 @@ export function FormatToolbar({
           title="Numbered List"
           id="toolbar-action-numbered"
         >
-          <ListOrdered size={14} />
+          <ListNumbers size={14} />
         </button>
       </div>
 
       {isFontSizeDropdownOpen && createPortal(
         <div
           ref={fontSizeDropdownRef}
-          className="bg-white border border-[#E1DFD5] rounded-lg shadow-lg z-[100] max-h-48 overflow-y-auto min-w-[80px] py-1"
+          className="bg-white border border-[#E1DFD5] rounded-none shadow-lg z-[100] max-h-48 overflow-y-auto min-w-[80px] py-1"
           style={{ position: 'fixed', top: fontSizeDropdownPos.top, left: fontSizeDropdownPos.left }}
         >
           {FONT_SIZES.map((size) => (
@@ -795,7 +795,7 @@ export function FormatToolbar({
       {activePicker === "color" && createPortal(
         <div
           ref={colorPickerRef}
-          className="bg-white border border-[#E1DFD5] rounded-lg shadow-lg p-2 z-[100] grid grid-cols-4 gap-1.5 min-w-[160px]"
+          className="bg-white border border-[#E1DFD5] rounded-none shadow-lg p-2 z-[100] grid grid-cols-4 gap-1.5 min-w-[160px]"
           style={{ position: 'fixed', top: dropdownPos.top, left: dropdownPos.left }}
         >
           {TEXT_COLORS.map((c) => (
@@ -814,7 +814,7 @@ export function FormatToolbar({
       {activePicker === "highlight" && createPortal(
         <div
           ref={highlightPickerRef}
-          className="bg-white border border-[#E1DFD5] rounded-lg shadow-lg p-2 z-[100] grid grid-cols-4 gap-1.5 min-w-[160px]"
+          className="bg-white border border-[#E1DFD5] rounded-none shadow-lg p-2 z-[100] grid grid-cols-4 gap-1.5 min-w-[160px]"
           style={{ position: 'fixed', top: dropdownPos.top, left: dropdownPos.left + 40 }}
         >
           {HIGHLIGHT_COLORS.map((c) => (
@@ -833,11 +833,11 @@ export function FormatToolbar({
       {isMenubarCollapsed && (
         <button
           onClick={() => setIsMenubarCollapsed(false)}
-          className="p-2 rounded-lg hover:bg-stone-200 text-stone-600 cursor-pointer flex items-center justify-center transition-all bg-white border border-[#E1DFD5] shadow-md shrink-0 ml-1"
+          className="p-2 rounded-none hover:bg-stone-200 text-stone-600 cursor-pointer flex items-center justify-center transition-all bg-white border border-[#E1DFD5] shadow-md shrink-0 ml-1"
           title="Expand Menubar"
           id="expand-menubar-toolbar-btn"
         >
-          <ChevronDown size={14} className="animate-bounce" />
+          <CaretDown size={14} className="animate-bounce" />
         </button>
       )}
     </div>

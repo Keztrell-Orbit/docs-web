@@ -11,6 +11,7 @@ import { PAGE_DIMENSIONS } from "../../../types";
 import { $isPageBreakNode } from "../../../extensions/PageBreak";
 import { AutoPageBreakPlugin } from "../../../plugins/AutoPageBreakPlugin";
 import { SelectAllPlugin } from "../../../plugins/SelectAllPlugin";
+import { FloatingFormatToolbar } from "../../toolbar/components/FloatingFormatToolbar";
 
 interface DocumentEditorProps {
   pageDimension: keyof typeof PAGE_DIMENSIONS;
@@ -111,7 +112,7 @@ export function DocumentEditor({
           }}
           id="multi-page-editor-background"
         >
-          <div className="w-full prose max-w-none prose-slate" id="lexical-text-editor-container">
+          <div className="w-full prose max-w-none prose-slate" id="lexical-text-editor-container" onContextMenu={(e) => e.preventDefault()}>
             <RichTextPlugin
               contentEditable={
                 <ContentEditable
@@ -125,6 +126,7 @@ export function DocumentEditor({
             <HistoryPlugin />
             <LinkPlugin />
             <SelectAllPlugin />
+            <FloatingFormatToolbar />
           </div>
         </motion.div>
       </div>

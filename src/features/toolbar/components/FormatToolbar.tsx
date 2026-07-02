@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
+import { motion, AnimatePresence } from "motion/react";
 import {
   MagnifyingGlass,
   ArrowUUpLeft,
@@ -131,15 +132,17 @@ export function FormatToolbar({
     "color" | "highlight" | null
   >(null);
 
+  const colorTriggerRef = useRef<HTMLDivElement>(null);
+  const highlightTriggerRef = useRef<HTMLDivElement>(null);
   const colorPickerRef = useRef<HTMLDivElement>(null);
   const highlightPickerRef = useRef<HTMLDivElement>(null);
 
   useClickOutside(colorPickerRef, () => {
     if (activePicker === "color") setActivePicker(null);
-  });
+  }, [colorTriggerRef]);
   useClickOutside(highlightPickerRef, () => {
     if (activePicker === "highlight") setActivePicker(null);
-  });
+  }, [highlightTriggerRef]);
 
   const FONT_SIZES = [8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 32, 36, 42, 48, 56, 64, 72];
 
@@ -150,14 +153,24 @@ export function FormatToolbar({
   const fontSizeTriggerRef = useRef<HTMLDivElement>(null);
   const fontSizeDropdownRef = useRef<HTMLDivElement>(null);
 
+  const [isFontFamilyOpen, setIsFontFamilyOpen] = useState(false);
+  const [fontFamilyPos, setFontFamilyPos] = useState({ top: 0, left: 0 });
+  const fontFamilyTriggerRef = useRef<HTMLDivElement>(null);
+  const fontFamilyDropdownRef = useRef<HTMLDivElement>(null);
+
+  const [isStyleOpen, setIsStyleOpen] = useState(false);
+  const [stylePos, setStylePos] = useState({ top: 0, left: 0 });
+  const styleTriggerRef = useRef<HTMLDivElement>(null);
+  const styleDropdownRef = useRef<HTMLDivElement>(null);
+
   const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
-  const colorTriggerRef = useRef<HTMLDivElement>(null);
-  const highlightTriggerRef = useRef<HTMLDivElement>(null);
 
   useClickOutside(fontSizeDropdownRef, () => {
     setIsFontSizeDropdownOpen(false);
     setIsFontSizeEditing(false);
-  });
+  }, [fontSizeTriggerRef]);
+  useClickOutside(fontFamilyDropdownRef, () => setIsFontFamilyOpen(false), [fontFamilyTriggerRef]);
+  useClickOutside(styleDropdownRef, () => setIsStyleOpen(false), [styleTriggerRef]);
 
   useEffect(() => {
     if (isFontSizeDropdownOpen && fontSizeTriggerRef.current) {
@@ -177,18 +190,35 @@ export function FormatToolbar({
   }, [activePicker]);
 
   useEffect(() => {
-    const handleScroll = () => {
+    if (isFontFamilyOpen && fontFamilyTriggerRef.current) {
+      const rect = fontFamilyTriggerRef.current.getBoundingClientRect();
+      setFontFamilyPos({ top: rect.bottom + 4, left: rect.left });
+    }
+  }, [isFontFamilyOpen]);
+
+  useEffect(() => {
+    if (isStyleOpen && styleTriggerRef.current) {
+      const rect = styleTriggerRef.current.getBoundingClientRect();
+      setStylePos({ top: rect.bottom + 4, left: rect.left });
+    }
+  }, [isStyleOpen]);
+
+  useEffect(() => {
+    const handleScroll = (e: Event) => {
+      if (e.target !== document && e.target !== document.documentElement && e.target !== document.body) return;
       if (isFontSizeDropdownOpen) {
         setIsFontSizeDropdownOpen(false);
         setIsFontSizeEditing(false);
       }
+      if (isFontFamilyOpen) setIsFontFamilyOpen(false);
+      if (isStyleOpen) setIsStyleOpen(false);
       if (activePicker) {
         setActivePicker(null);
       }
     };
     window.addEventListener("scroll", handleScroll, true);
     return () => window.removeEventListener("scroll", handleScroll, true);
-  }, [isFontSizeDropdownOpen, activePicker, setActivePicker]);
+  }, [isFontSizeDropdownOpen, isFontFamilyOpen, isStyleOpen, activePicker, setActivePicker]);
 
   const applyFontSize = useCallback(
     (size: number) => {
@@ -524,37 +554,29 @@ export function FormatToolbar({
         <div className="w-px h-5 bg-gray-300 self-center mx-1" />
 
         <div
-          className="flex items-center bg-transparent hover:bg-gray-100 rounded px-1 py-0.5"
+          ref={styleTriggerRef}
+          className="flex items-center bg-transparent hover:bg-gray-100 rounded px-1 py-0.5 cursor-pointer"
           title="Style template"
+          onClick={() => setIsStyleOpen(!isStyleOpen)}
         >
-          <select
-            value={active.blockType}
-            onChange={(e) => handleStyleChange(e.target.value)}
-            className="bg-transparent text-xs text-gray-700 font-medium border-none outline-none focus:ring-0 cursor-pointer"
-            id="toolbar-style-dropdown"
-          >
-            <option value="p">Normal text</option>
-            <option value="h2">Heading 1</option>
-            <option value="h3">Heading 2</option>
-          </select>
+          <span className="text-xs text-gray-700 font-medium min-w-[60px]">
+            {active.blockType === "p" ? "Normal text" : active.blockType === "h2" ? "Heading 1" : "Heading 2"}
+          </span>
+          <CaretDown size={10} className="text-gray-400 ml-0.5" />
         </div>
 
         <div className="w-px h-5 bg-gray-300 self-center mx-1" />
 
         <div
-          className="flex items-center bg-transparent hover:bg-gray-100 rounded px-1 py-0.5"
+          ref={fontFamilyTriggerRef}
+          className="flex items-center bg-transparent hover:bg-gray-100 rounded px-1 py-0.5 cursor-pointer"
           title="Font Family"
+          onClick={() => setIsFontFamilyOpen(!isFontFamilyOpen)}
         >
-          <select
-            value={displayFontFamily}
-            onChange={(e) => handleFontFamilyChange(e.target.value)}
-            className="bg-transparent text-xs text-gray-700 font-medium border-none outline-none focus:ring-0 cursor-pointer"
-            id="toolbar-font-dropdown"
-          >
-            <option value="Inter">Inter (Sans)</option>
-            <option value="Playfair Display">Playfair (Serif)</option>
-            <option value="JetBrains Mono">JetBrains Mono</option>
-          </select>
+          <span className="text-xs text-gray-700 font-medium min-w-[60px]">
+            {displayFontFamily === "Playfair Display" ? "Playfair" : displayFontFamily === "JetBrains Mono" ? "JetBrains" : displayFontFamily}
+          </span>
+          <CaretDown size={10} className="text-gray-400 ml-0.5" />
         </div>
 
         <div className="w-px h-5 bg-gray-300 self-center mx-1" />
@@ -766,67 +788,167 @@ export function FormatToolbar({
         </button>
       </div>
 
-      {isFontSizeDropdownOpen && createPortal(
-        <div
-          ref={fontSizeDropdownRef}
-          className="bg-white border border-[#E1DFD5] rounded-none shadow-lg z-[100] max-h-48 overflow-y-auto min-w-[80px] py-1"
-          style={{ position: 'fixed', top: fontSizeDropdownPos.top, left: fontSizeDropdownPos.left }}
-        >
-          {FONT_SIZES.map((size) => (
-            <button
-              key={size}
-              onClick={() => {
-                applyFontSize(size);
-                setIsFontSizeDropdownOpen(false);
-              }}
-              className={`w-full text-left px-3 py-1 text-xs hover:bg-gray-100 transition-colors ${
-                size === displayFontSize
-                  ? "bg-gray-100 font-semibold text-gray-900"
-                  : "text-gray-600"
-              }`}
+      {createPortal(
+        <AnimatePresence>
+          {isFontSizeDropdownOpen && (
+            <motion.div
+              ref={fontSizeDropdownRef}
+              initial={{ opacity: 0, scale: 0.95, y: -4 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -4 }}
+              transition={{ type: "spring", stiffness: 220, damping: 24, mass: 0.6 }}
+              className="bg-white border border-[#E1DFD5] rounded-none shadow-lg z-[100] max-h-48 overflow-y-auto w-[36px] py-1"
+              style={{ position: 'fixed', top: fontSizeDropdownPos.top, left: fontSizeDropdownPos.left }}
             >
-              {size}
-            </button>
-          ))}
-        </div>,
+              {FONT_SIZES.map((size) => (
+                <button
+                  key={size}
+                  onClick={() => {
+                    applyFontSize(size);
+                    setIsFontSizeDropdownOpen(false);
+                  }}
+                  className={`w-full text-center px-0 py-1 text-xs hover:bg-gray-100 transition-colors ${
+                    size === displayFontSize
+                      ? "bg-gray-100 font-semibold text-gray-900"
+                      : "text-gray-600"
+                  }`}
+                >
+                  {size}
+                </button>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>,
         document.body
       )}
 
-      {activePicker === "color" && createPortal(
-        <div
-          ref={colorPickerRef}
-          className="bg-white border border-[#E1DFD5] rounded-none shadow-lg p-2 z-[100] grid grid-cols-4 gap-1.5 min-w-[160px]"
-          style={{ position: 'fixed', top: dropdownPos.top, left: dropdownPos.left }}
-        >
-          {TEXT_COLORS.map((c) => (
-            <button
-              key={c.value}
-              onClick={() => applyColor(c.value)}
-              className="w-7 h-7 rounded border border-gray-200 hover:scale-110 transition-transform cursor-pointer"
-              style={{ backgroundColor: c.value || "#ffffff" }}
-              title={c.label}
-            />
-          ))}
-        </div>,
+      {createPortal(
+        <AnimatePresence>
+          {activePicker === "color" && (
+            <motion.div
+              ref={colorPickerRef}
+              initial={{ opacity: 0, scale: 0.95, y: -4 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -4 }}
+              transition={{ type: "spring", stiffness: 220, damping: 24, mass: 0.6 }}
+              className="bg-white border border-[#E1DFD5] rounded-none shadow-lg p-2 z-[100] grid grid-cols-4 gap-1.5 min-w-[160px]"
+              style={{ position: 'fixed', top: dropdownPos.top, left: dropdownPos.left }}
+            >
+              {TEXT_COLORS.map((c) => (
+                <button
+                  key={c.value}
+                  onClick={() => applyColor(c.value)}
+                  className="w-7 h-7 rounded border border-gray-200 hover:scale-110 transition-transform cursor-pointer"
+                  style={{ backgroundColor: c.value || "#ffffff" }}
+                  title={c.label}
+                />
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>,
         document.body
       )}
 
-      {activePicker === "highlight" && createPortal(
-        <div
-          ref={highlightPickerRef}
-          className="bg-white border border-[#E1DFD5] rounded-none shadow-lg p-2 z-[100] grid grid-cols-4 gap-1.5 min-w-[160px]"
-          style={{ position: 'fixed', top: dropdownPos.top, left: dropdownPos.left + 40 }}
-        >
-          {HIGHLIGHT_COLORS.map((c) => (
-            <button
-              key={c.value}
-              onClick={() => applyHighlight(c.value)}
-              className="w-7 h-7 rounded border border-gray-200 hover:scale-110 transition-transform cursor-pointer"
-              style={{ backgroundColor: c.value || "#ffffff" }}
-              title={c.label}
-            />
-          ))}
-        </div>,
+      {createPortal(
+        <AnimatePresence>
+          {activePicker === "highlight" && (
+            <motion.div
+              ref={highlightPickerRef}
+              initial={{ opacity: 0, scale: 0.95, y: -4 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -4 }}
+              transition={{ type: "spring", stiffness: 220, damping: 24, mass: 0.6 }}
+              className="bg-white border border-[#E1DFD5] rounded-none shadow-lg p-2 z-[100] grid grid-cols-4 gap-1.5 min-w-[160px]"
+              style={{ position: 'fixed', top: dropdownPos.top, left: dropdownPos.left + 40 }}
+            >
+              {HIGHLIGHT_COLORS.map((c) => (
+                <button
+                  key={c.value}
+                  onClick={() => applyHighlight(c.value)}
+                  className="w-7 h-7 rounded border border-gray-200 hover:scale-110 transition-transform cursor-pointer"
+                  style={{ backgroundColor: c.value || "#ffffff" }}
+                  title={c.label}
+                />
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
+
+      {createPortal(
+        <AnimatePresence>
+          {isFontFamilyOpen && (
+            <motion.div
+              ref={fontFamilyDropdownRef}
+              initial={{ opacity: 0, scale: 0.95, y: -4 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -4 }}
+              transition={{ type: "spring", stiffness: 220, damping: 24, mass: 0.6 }}
+              className="bg-white border border-[#E1DFD5] rounded-none shadow-lg z-[100] py-1 w-[100px]"
+              style={{ position: 'fixed', top: fontFamilyPos.top, left: fontFamilyPos.left }}
+            >
+              {[
+                { label: "Inter (Sans)", value: "Inter" },
+                { label: "Playfair (Serif)", value: "Playfair Display" },
+                { label: "JetBrains Mono", value: "JetBrains Mono" },
+              ].map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => {
+                    handleFontFamilyChange(opt.value);
+                    setIsFontFamilyOpen(false);
+                  }}
+                  className={`w-full text-left px-2 py-1 text-xs hover:bg-gray-100 transition-colors ${
+                    displayFontFamily === opt.value
+                      ? "bg-gray-100 font-semibold text-gray-900"
+                      : "text-gray-600"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
+
+      {createPortal(
+        <AnimatePresence>
+          {isStyleOpen && (
+            <motion.div
+              ref={styleDropdownRef}
+              initial={{ opacity: 0, scale: 0.95, y: -4 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -4 }}
+              transition={{ type: "spring", stiffness: 220, damping: 24, mass: 0.6 }}
+              className="bg-white border border-[#E1DFD5] rounded-none shadow-lg z-[100] py-1 w-[80px]"
+              style={{ position: 'fixed', top: stylePos.top, left: stylePos.left }}
+            >
+              {[
+                { label: "Normal text", value: "p" },
+                { label: "Heading 1", value: "h2" },
+                { label: "Heading 2", value: "h3" },
+              ].map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => {
+                    handleStyleChange(opt.value);
+                    setIsStyleOpen(false);
+                  }}
+                  className={`w-full text-left px-2 py-1 text-xs hover:bg-gray-100 transition-colors ${
+                    active.blockType === opt.value
+                      ? "bg-gray-100 font-semibold text-gray-900"
+                      : "text-gray-600"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>,
         document.body
       )}
 

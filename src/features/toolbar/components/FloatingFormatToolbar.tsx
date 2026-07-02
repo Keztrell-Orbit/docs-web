@@ -19,6 +19,7 @@ import {
 } from "lexical";
 import { $patchStyleText } from "@lexical/selection";
 import { AIRewritePopup } from "./AIRewritePopup";
+import { useClickOutside } from "../../../hooks";
 
 const TEXT_COLORS = [
   { label: "Charcoal Slate", value: "#36454F" },
@@ -82,6 +83,19 @@ export function FloatingFormatToolbar() {
   const colorTriggerRef = useRef<HTMLDivElement>(null);
   const highlightTriggerRef = useRef<HTMLDivElement>(null);
   const fontSizeTriggerRef = useRef<HTMLDivElement>(null);
+  const fontFamilyTriggerRef = useRef<HTMLDivElement>(null);
+
+  const [isFontFamilyOpen, setIsFontFamilyOpen] = useState(false);
+  const [fontFamilyDropdownPos, setFontFamilyDropdownPos] = useState({ top: 0, left: 0 });
+  const fontFamilyDropdownRef = useRef<HTMLDivElement>(null);
+  const fontSizeDropdownRef = useRef<HTMLDivElement>(null);
+  const colorPickerRef = useRef<HTMLDivElement>(null);
+  const highlightPickerRef = useRef<HTMLDivElement>(null);
+
+  useClickOutside(fontFamilyDropdownRef, () => setIsFontFamilyOpen(false), [fontFamilyTriggerRef]);
+  useClickOutside(fontSizeDropdownRef, () => setActivePopup(null), [fontSizeTriggerRef]);
+  useClickOutside(colorPickerRef, () => setActivePopup(null), [colorTriggerRef]);
+  useClickOutside(highlightPickerRef, () => setActivePopup(null), [highlightTriggerRef]);
 
   const [selectedText, setSelectedText] = useState("");
 
@@ -195,14 +209,21 @@ export function FloatingFormatToolbar() {
   }, [editor]);
 
   useEffect(() => {
-    const handleScroll = () => { if (isVisibleRef.current) setIsVisible(false); };
+    const handleScroll = (e: Event) => {
+      if (e.target !== document && e.target !== document.documentElement && e.target !== document.body) return;
+      if (isVisibleRef.current) setIsVisible(false);
+      setIsFontFamilyOpen(false);
+    };
     window.addEventListener("scroll", handleScroll, true);
     return () => window.removeEventListener("scroll", handleScroll, true);
   }, []);
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isVisibleRef.current) setIsVisible(false);
+      if (e.key === "Escape") {
+        if (isFontFamilyOpen) { setIsFontFamilyOpen(false); return; }
+        if (isVisibleRef.current) setIsVisible(false);
+      }
     };
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
@@ -310,6 +331,13 @@ export function FloatingFormatToolbar() {
   }, [activePopup]);
 
   useEffect(() => {
+    if (isFontFamilyOpen && fontFamilyTriggerRef.current) {
+      const rect = fontFamilyTriggerRef.current.getBoundingClientRect();
+      setFontFamilyDropdownPos({ top: rect.bottom + 4, left: rect.left });
+    }
+  }, [isFontFamilyOpen]);
+
+  useEffect(() => {
     if (activePopup === "ai") {
       setAiPopupPos({
         top: position.top + 48,
@@ -332,15 +360,16 @@ export function FloatingFormatToolbar() {
               className="flex items-center gap-0.5 px-2 py-1 bg-[#FAF9F5] rounded-none shadow-lg border border-[#E1DFD5]"
               style={{ position: 'fixed', top: position.top, left: position.left, zIndex: 99999 }}
             >
-                <select
-                  value={currentFontFamily}
-                  onChange={(e) => handleFontFamilyChange(e.target.value)}
-                  className="bg-transparent text-stone-700 text-[11px] font-medium border-none outline-none focus:ring-0 cursor-pointer appearance-none px-0.5 max-w-[65px] truncate"
+                <div
+                  ref={fontFamilyTriggerRef}
+                  className="flex items-center cursor-pointer gap-0.5"
+                  onClick={() => setIsFontFamilyOpen(!isFontFamilyOpen)}
                 >
-                  {FONT_FAMILIES.map((f) => (
-                    <option key={f} value={f} className="text-stone-800">{f === "Playfair Display" ? "Playfair" : f === "JetBrains Mono" ? "JetBrains" : f}</option>
-                  ))}
-                </select>
+                  <span className="text-stone-700 text-[11px] font-medium px-0.5 max-w-[65px] truncate">
+                    {currentFontFamily === "Playfair Display" ? "Playfair" : currentFontFamily === "JetBrains Mono" ? "JetBrains" : currentFontFamily}
+                  </span>
+                  <CaretDown size={8} className="text-stone-400" />
+                </div>
 
                 <div className="w-px h-4 bg-gray-300 mx-0.5" />
 
@@ -473,77 +502,141 @@ export function FloatingFormatToolbar() {
           document.body
         )}
 
-      {activePopup === "font-size" && createPortal(
-        <div
-          className="bg-white border border-[#E1DFD5] rounded-none shadow-lg z-[100] max-h-40 overflow-y-auto min-w-[64px] py-1"
-          style={{ position: 'fixed', top: fontSizeDropdownPos.top, left: fontSizeDropdownPos.left }}
-        >
-          {FONT_SIZES.map((size) => (
-            <button
-              key={size}
-              onMouseDown={(e) => { e.preventDefault(); editor.focus(); }}
-              onClick={() => applyFontSize(size)}
-              className={`w-full text-left px-2.5 py-1 text-xs hover:bg-gray-100 transition-colors ${
-                size === currentFontSize
-                  ? "bg-gray-100 font-semibold text-gray-900"
-                  : "text-gray-600"
-              }`}
+      {createPortal(
+        <AnimatePresence>
+          {activePopup === "font-size" && (
+            <motion.div
+              ref={fontSizeDropdownRef}
+              initial={{ opacity: 0, scale: 0.95, y: -4 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -4 }}
+              transition={{ type: "spring", stiffness: 220, damping: 24, mass: 0.6 }}
+              className="bg-white border border-[#E1DFD5] rounded-none shadow-lg z-[100] max-h-40 overflow-y-auto w-[36px] py-1"
+              style={{ position: 'fixed', top: fontSizeDropdownPos.top, left: fontSizeDropdownPos.left }}
             >
-              {size}
-            </button>
-          ))}
-        </div>,
+              {FONT_SIZES.map((size) => (
+                <button
+                  key={size}
+                  onMouseDown={(e) => { e.preventDefault(); editor.focus(); }}
+                  onClick={() => applyFontSize(size)}
+                  className={`w-full text-center px-0 py-1 text-xs hover:bg-gray-100 transition-colors ${
+                    size === currentFontSize
+                      ? "bg-gray-100 font-semibold text-gray-900"
+                      : "text-gray-600"
+                  }`}
+                >
+                  {size}
+                </button>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>,
         document.body
       )}
 
-      {activePopup === "color" && createPortal(
-        <div
-          className="bg-white border border-[#E1DFD5] rounded-none shadow-lg p-2 z-[100] grid grid-cols-4 gap-1.5 min-w-[152px]"
-          style={{ position: 'fixed', top: colorPickerPos.top, left: colorPickerPos.left }}
-        >
-          {TEXT_COLORS.map((c) => (
-            <button
-              key={c.value}
-              onMouseDown={(e) => { e.preventDefault(); editor.focus(); }}
-              onClick={() => applyColor(c.value)}
-              className="w-7 h-7 rounded border border-gray-200 hover:scale-110 transition-transform cursor-pointer"
-              style={{ backgroundColor: c.value || "#ffffff" }}
-              title={c.label}
-            />
-          ))}
-        </div>,
+      {createPortal(
+        <AnimatePresence>
+          {activePopup === "color" && (
+            <motion.div
+              ref={colorPickerRef}
+              initial={{ opacity: 0, scale: 0.95, y: -4 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -4 }}
+              transition={{ type: "spring", stiffness: 220, damping: 24, mass: 0.6 }}
+              className="bg-white border border-[#E1DFD5] rounded-none shadow-lg p-2 z-[100] grid grid-cols-4 gap-1.5 min-w-[152px]"
+              style={{ position: 'fixed', top: colorPickerPos.top, left: colorPickerPos.left }}
+            >
+              {TEXT_COLORS.map((c) => (
+                <button
+                  key={c.value}
+                  onMouseDown={(e) => { e.preventDefault(); editor.focus(); }}
+                  onClick={() => applyColor(c.value)}
+                  className="w-7 h-7 rounded border border-gray-200 hover:scale-110 transition-transform cursor-pointer"
+                  style={{ backgroundColor: c.value || "#ffffff" }}
+                  title={c.label}
+                />
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>,
         document.body
       )}
 
-      {activePopup === "highlight" && createPortal(
-        <div
-          className="bg-white border border-[#E1DFD5] rounded-none shadow-lg p-2 z-[100] grid grid-cols-4 gap-1.5 min-w-[152px]"
-          style={{ position: 'fixed', top: highlightPickerPos.top, left: highlightPickerPos.left }}
-        >
-          {HIGHLIGHT_COLORS.map((c) => (
-            <button
-              key={c.value}
-              onMouseDown={(e) => { e.preventDefault(); editor.focus(); }}
-              onClick={() => applyHighlight(c.value)}
-              className="w-7 h-7 rounded border border-gray-200 hover:scale-110 transition-transform cursor-pointer"
-              style={{ backgroundColor: c.value || "#ffffff" }}
-              title={c.label}
-            />
-          ))}
-        </div>,
+      {createPortal(
+        <AnimatePresence>
+          {activePopup === "highlight" && (
+            <motion.div
+              ref={highlightPickerRef}
+              initial={{ opacity: 0, scale: 0.95, y: -4 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -4 }}
+              transition={{ type: "spring", stiffness: 220, damping: 24, mass: 0.6 }}
+              className="bg-white border border-[#E1DFD5] rounded-none shadow-lg p-2 z-[100] grid grid-cols-4 gap-1.5 min-w-[152px]"
+              style={{ position: 'fixed', top: highlightPickerPos.top, left: highlightPickerPos.left }}
+            >
+              {HIGHLIGHT_COLORS.map((c) => (
+                <button
+                  key={c.value}
+                  onMouseDown={(e) => { e.preventDefault(); editor.focus(); }}
+                  onClick={() => applyHighlight(c.value)}
+                  className="w-7 h-7 rounded border border-gray-200 hover:scale-110 transition-transform cursor-pointer"
+                  style={{ backgroundColor: c.value || "#ffffff" }}
+                  title={c.label}
+                />
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>,
         document.body
       )}
 
-      {activePopup === "ai" && (
-        <AIRewritePopup
-          position={aiPopupPos}
-          selectedText={selectedText}
-          onClose={() => {
-            setActivePopup(null);
-            activePopupRef.current = null;
-          }}
-        />
+      {createPortal(
+        <AnimatePresence>
+          {isFontFamilyOpen && (
+            <motion.div
+              ref={fontFamilyDropdownRef}
+              initial={{ opacity: 0, scale: 0.95, y: -4 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -4 }}
+              transition={{ type: "spring", stiffness: 220, damping: 24, mass: 0.6 }}
+              className="bg-white border border-[#E1DFD5] rounded-none shadow-lg z-[100] py-1 w-[90px]"
+              style={{ position: 'fixed', top: fontFamilyDropdownPos.top, left: fontFamilyDropdownPos.left }}
+            >
+              {FONT_FAMILIES.map((f) => (
+                <button
+                  key={f}
+                  onMouseDown={(e) => { e.preventDefault(); editor.focus(); }}
+                  onClick={() => {
+                    handleFontFamilyChange(f);
+                    setIsFontFamilyOpen(false);
+                  }}
+                  className={`w-full text-left px-2 py-1 text-xs hover:bg-gray-100 transition-colors ${
+                    currentFontFamily === f
+                      ? "bg-gray-100 font-semibold text-gray-900"
+                      : "text-gray-600"
+                  }`}
+                >
+                  {f === "Playfair Display" ? "Playfair (Serif)" : f === "JetBrains Mono" ? "JetBrains Mono" : `${f} (Sans)`}
+                </button>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
       )}
+
+      <AnimatePresence>
+        {activePopup === "ai" && (
+          <AIRewritePopup
+            position={aiPopupPos}
+            selectedText={selectedText}
+            onClose={() => {
+              setActivePopup(null);
+              activePopupRef.current = null;
+            }}
+          />
+        )}
+      </AnimatePresence>
     </>
   );
 }

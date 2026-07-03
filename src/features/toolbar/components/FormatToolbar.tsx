@@ -44,6 +44,7 @@ import { $findMatchingParent } from "@lexical/utils";
 import { $isLinkNode, TOGGLE_LINK_COMMAND } from "@lexical/link";
 import { $createImageNode } from "../../../extensions/ImageNode";
 import { useClickOutside } from "../../../hooks";
+import { TEXT_COLORS, HIGHLIGHT_COLORS, FONT_SIZES } from "../formatting.constants";
 
 interface FormatToolbarProps {
   zoomLevel: number;
@@ -73,32 +74,6 @@ interface ActiveFormats {
   fontFamily: string | null;
   fontSize: number | null;
 }
-
-const TEXT_COLORS = [
-  { label: "Charcoal Slate", value: "#36454F" },
-  { label: "Crimson Red", value: "#DC143C" },
-  { label: "Forest Green", value: "#228B22" },
-  { label: "Navy Blue", value: "#000080" },
-  { label: "Royal Purple", value: "#7851A9" },
-  { label: "Teal", value: "#008080" },
-  { label: "Maroon", value: "#800000" },
-  { label: "Olive", value: "#808000" },
-  { label: "Steel Blue", value: "#4682B4" },
-  { label: "Dark Orange", value: "#FF8C00" },
-  { label: "Black", value: "#000000" },
-  { label: "Gray", value: "#808080" },
-];
-
-const HIGHLIGHT_COLORS = [
-  { label: "Amber Yellow", value: "#FFD700" },
-  { label: "Soft Pink", value: "#FFB6C1" },
-  { label: "Mint Green", value: "#98FB98" },
-  { label: "Sky Blue", value: "#87CEEB" },
-  { label: "Lavender", value: "#E6E6FA" },
-  { label: "Peach", value: "#FFDAB9" },
-  { label: "Coral", value: "#FF7F50" },
-  { label: "None", value: "" },
-];
 
 export function FormatToolbar({
   zoomLevel,
@@ -144,7 +119,6 @@ export function FormatToolbar({
     if (activePicker === "highlight") setActivePicker(null);
   }, [highlightTriggerRef]);
 
-  const FONT_SIZES = [8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 32, 36, 42, 48, 56, 64, 72];
 
   const [isFontSizeDropdownOpen, setIsFontSizeDropdownOpen] = useState(false);
   const [isFontSizeEditing, setIsFontSizeEditing] = useState(false);

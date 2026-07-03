@@ -1,15 +1,17 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import type { LexicalEditor } from "lexical";
-import { $generateHtmlFromNodes } from "@lexical/html";
+import { $getRoot } from "lexical";
+import { $generateHtmlFromNodes, $generateNodesFromDOM } from "@lexical/html";
 import { db, seedDatabase } from "./db";
 import { EditorProvider } from "./contexts/EditorContext";
 import { useChatScroll, useOutline } from "./hooks";
-import { MenuBar, ShareModal, HISTORICAL_VERSIONS } from "./features/menubar";
+import { MenuBar, ShareModal, SettingsModal, HISTORICAL_VERSIONS } from "./features/menubar";
 import { FormatToolbar } from "./features/toolbar";
 import { OutlinePanel } from "./features/outline";
 import { DocumentEditor } from "./features/document";
 import { HynkiPanel } from "./features/hynki";
+import { createConversation, sendMessage, listModels } from "./api/chat";
 
 export default function App() {
   const [inputText, setInputText] = useState("");
@@ -17,6 +19,7 @@ export default function App() {
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(true);
   const [isOfflineSaved, setIsOfflineSaved] = useState(true);
+  const [conversationId, setConversationId] = useState<string | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<LexicalEditor | null>(null);
 
@@ -39,6 +42,48 @@ export default function App() {
   const [shareEmail, setShareEmail] = useState<string>("");
   const [shareRole, setShareRole] = useState<"viewer" | "commenter" | "editor">("editor");
   const [shareLinkCopied, setShareLinkCopied] = useState<boolean>(false);
+
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState<boolean>(false);
+  const defaultApiKeys = { gemini: { enabled: false, key: "" }, openai: { enabled: false, key: "" }, claude: { enabled: false, key: "" }, openrouter: { enabled: false, key: "" } };
+  const [apiKeys, setApiKeys] = useState(() => {
+    try {
+      const saved = localStorage.getItem("byok-settings");
+      return saved ? JSON.parse(saved) : defaultApiKeys;
+    } catch {
+      return defaultApiKeys;
+    }
+  });
+
+  const handleSaveSettings = useCallback((newKeys: typeof apiKeys) => {
+    setApiKeys(newKeys);
+    localStorage.setItem("byok-settings", JSON.stringify(newKeys));
+
+    const enabled = Object.entries(newKeys).filter(([, v]) => v.enabled && v.key.length > 0);
+    for (const [provider, config] of enabled) {
+      listModels(provider, config.key)
+        .then((models) => {
+          setAvailableModels((prev) => ({ ...prev, [provider]: models }));
+        })
+        .catch(() => {
+          // fall back to default model list if fetch fails
+        });
+    }
+  }, []);
+
+  const [selectedModel, setSelectedModel] = useState(() => {
+    const saved = localStorage.getItem("selected-model");
+    if (saved) {
+      try { return JSON.parse(saved); } catch { /* ignore */ }
+    }
+    return { provider: "gemini", model: "gemini-3.5-flash" };
+  });
+
+  const [availableModels, setAvailableModels] = useState<Record<string, { id: string; name?: string }[]>>({});
+
+  const handleModelChange = useCallback((model: { provider: string; model: string }) => {
+    setSelectedModel(model);
+    localStorage.setItem("selected-model", JSON.stringify(model));
+  }, []);
 
   const currentDoc = useLiveQuery(() => db.documents.get("doc-default"));
   const chatMessages = useLiveQuery(() => db.chats.orderBy("timestamp").toArray());
@@ -69,6 +114,19 @@ export default function App() {
     setTimeout(() => setIsOfflineSaved(true), 400);
   }, []);
 
+  const applyDocumentContent = useCallback((html: string) => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    editor.update(() => {
+      const parser = new DOMParser();
+      const dom = parser.parseFromString(html, "text/html");
+      const nodes = $generateNodesFromDOM(editor, dom);
+      const root = $getRoot();
+      root.clear();
+      root.append(...nodes);
+    });
+  }, []);
+
   const handleSendMessage = useCallback(async (e?: React.FormEvent, customPrompt?: string) => {
     if (e) e.preventDefault();
     const promptToSend = customPrompt || inputText;
@@ -80,6 +138,7 @@ export default function App() {
 
     const userMessageId = `msg-user-${Date.now()}`;
     const assistantMessageId = `msg-assistant-${Date.now()}`;
+    let convId = conversationId;
 
     await db.chats.add({
       id: userMessageId,
@@ -91,47 +150,53 @@ export default function App() {
     setIsGenerating(true);
 
     try {
+      if (!convId) {
+        const newConv = await createConversation();
+        convId = newConv;
+        setConversationId(convId);
+      }
+
       const editor = editorRef.current;
       const docHtml = editor
         ? editor.getEditorState().read(() => $generateHtmlFromNodes(editor, null))
         : currentDoc?.content || "";
       const docTitleVal = currentDoc?.title || "Document";
-      const hasLogo = currentDoc?.showLogo || false;
 
-      const history = chatMessages?.map((m) => ({
-        sender: m.sender,
-        text: m.text,
-      })) || [];
+      const activeProvider = selectedModel.provider;
+      const activeApiKey = apiKeys[activeProvider]?.enabled ? apiKeys[activeProvider].key : undefined;
 
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: promptToSend,
-          history,
-          currentContent: docHtml,
-          currentTitle: docTitleVal,
-          showLogo: hasLogo,
-        }),
+      const data = await sendMessage(convId, promptToSend, {
+        documentContent: docHtml,
+        documentTitle: docTitleVal,
+        provider: activeProvider,
+        model: selectedModel.model,
+        apiKey: activeApiKey,
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to communicate with AI Assistant.");
+      let textContent = data.content;
+
+      const docMatch = textContent.match(/---doc-start---([\s\S]*?)---doc-end---/);
+      if (docMatch) {
+        const docHtmlContent = docMatch[1].trim();
+        textContent = textContent.replace(/---doc-start---[\s\S]*?---doc-end---/g, "").trim();
+        applyDocumentContent(docHtmlContent);
       }
 
-      const data = await response.json();
+      const widgetMatch = textContent.match(/---widget:(\{.*?\})---/);
+      let widget: { type: string; label: string } | undefined;
 
-      await db.documents.update("doc-default", {
-        content: data.updatedContent,
-        showLogo: data.updatedShowLogo,
-        updatedAt: Date.now(),
-      });
+      if (widgetMatch) {
+        try {
+          widget = JSON.parse(widgetMatch[1]);
+          textContent = textContent.replace(widgetMatch[0], "").trim();
+        } catch { /* ignore parse errors */ }
+      }
 
       await db.chats.add({
         id: assistantMessageId,
         sender: "assistant",
-        text: data.text,
-        widget: data.widget,
+        text: textContent,
+        widget: widget as any,
         timestamp: Date.now(),
       });
     } catch (err: any) {
@@ -139,13 +204,13 @@ export default function App() {
       await db.chats.add({
         id: assistantMessageId,
         sender: "assistant",
-        text: `Error: ${err.message || "Something went wrong while applying edits."}`,
+        text: `Error: ${err.message || "Something went wrong communicating with AI."}`,
         timestamp: Date.now(),
       });
     } finally {
       setIsGenerating(false);
     }
-  }, [inputText, isGenerating, currentDoc, chatMessages]);
+  }, [inputText, isGenerating, currentDoc, conversationId, selectedModel, apiKeys, applyDocumentContent]);
 
   const restoreSnapshot = useCallback(async (snapshot: typeof HISTORICAL_VERSIONS[0]) => {
     setIsOfflineSaved(false);
@@ -166,6 +231,7 @@ export default function App() {
 
   const resetWorkspace = useCallback(async () => {
     if (confirm("Would you like to reset the workspace document and chat back to original state?")) {
+      setConversationId(null);
       await db.chats.clear();
       await db.documents.clear();
       await seedDatabase();
@@ -221,6 +287,7 @@ export default function App() {
             setIsHistoryOpen={setIsHistoryOpen}
             isChatOpen={isChatOpen}
             setIsChatOpen={setIsChatOpen}
+            setIsSettingsModalOpen={setIsSettingsModalOpen}
             setIsShareModalOpen={setIsShareModalOpen}
             tags={tags}
             setTags={setTags}
@@ -284,6 +351,10 @@ export default function App() {
               onRestoreSnapshot={restoreSnapshot}
               chatEndRef={chatEndRef}
               historicalVersions={HISTORICAL_VERSIONS}
+              apiKeys={apiKeys}
+              selectedModel={selectedModel}
+              onModelChange={handleModelChange}
+              availableModels={availableModels}
             />
           </div>
         </EditorProvider>
@@ -301,6 +372,13 @@ export default function App() {
           setShareRole={setShareRole}
           shareLinkCopied={shareLinkCopied}
           setShareLinkCopied={setShareLinkCopied}
+        />
+
+        <SettingsModal
+          isOpen={isSettingsModalOpen}
+          onClose={() => setIsSettingsModalOpen(false)}
+          settings={apiKeys}
+          onSave={handleSaveSettings}
         />
       </div>
     </div>

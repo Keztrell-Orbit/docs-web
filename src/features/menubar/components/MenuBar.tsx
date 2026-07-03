@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useMemo, useEffect } from "react";
 import { motion } from "motion/react";
 import {
   CaretRight, FileText, Star, Folder, Cloud, ClockCounterClockwise, ChatDots,
-  Lock, CaretDown, CaretUp,
+  Lock, CaretDown, CaretUp, GearSix,
 } from "@phosphor-icons/react";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import type { DocSnapshot } from "../../../types";
@@ -21,6 +21,7 @@ interface MenuBarProps {
   setIsHistoryOpen: (open: boolean) => void;
   isChatOpen: boolean;
   setIsChatOpen: (open: boolean | ((prev: boolean) => boolean)) => void;
+  setIsSettingsModalOpen: (open: boolean) => void;
   setIsShareModalOpen: (open: boolean) => void;
   tags: string[];
   setTags: (tags: string[]) => void;
@@ -42,7 +43,7 @@ export function MenuBar(props: MenuBarProps) {
     docTitle, handleTitleChange, isStarred, setIsStarred,
     isMenubarCollapsed, setIsMenubarCollapsed,
     isHistoryOpen, setIsHistoryOpen, isChatOpen, setIsChatOpen,
-    setIsShareModalOpen,
+    setIsSettingsModalOpen, setIsShareModalOpen,
     tags, setTags, isAddingTag, setIsAddingTag, newTagVal, setNewTagVal,
     restoreSnapshot, resetWorkspace, setInputText, setZoomLevel, highlightDocumentSection,
   } = props;
@@ -173,6 +174,13 @@ export function MenuBar(props: MenuBarProps) {
                   title="Toggle Comments & AI Chat"
                 >
                   <ChatDots size={15} />
+                </button>
+                <button
+                  onClick={() => setIsSettingsModalOpen(true)}
+                  className="p-1.5 rounded-full hover:bg-stone-200/60 text-stone-500 hover:text-stone-800 transition-all cursor-pointer border border-transparent"
+                  title="Settings"
+                >
+                  <GearSix size={15} />
                 </button>
                 <button
                   onClick={() => setIsShareModalOpen(true)}

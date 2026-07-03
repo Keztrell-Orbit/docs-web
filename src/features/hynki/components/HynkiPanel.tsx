@@ -32,6 +32,10 @@ interface HynkiPanelProps {
   onRestoreSnapshot: (snapshot: DocSnapshot) => void;
   chatEndRef: React.RefObject<HTMLDivElement | null>;
   historicalVersions: DocSnapshot[];
+  apiKeys: Record<string, { enabled: boolean; key: string }>;
+  selectedModel: { provider: string; model: string };
+  onModelChange: (model: { provider: string; model: string }) => void;
+  availableModels?: Record<string, { id: string; name?: string }[]>;
 }
 
 export function HynkiPanel({
@@ -39,7 +43,7 @@ export function HynkiPanel({
   chatMessages, isHistoryOpen, setIsHistoryOpen,
   onSendMessage, onResetWorkspace, onClose,
   onHighlightSection, onRestoreSnapshot, chatEndRef,
-  historicalVersions,
+  historicalVersions, apiKeys, selectedModel, onModelChange, availableModels,
 }: HynkiPanelProps) {
   if (!isChatOpen) return null;
 
@@ -101,6 +105,10 @@ export function HynkiPanel({
         setInputText={setInputText}
         isGenerating={isGenerating}
         onSubmit={onSendMessage}
+        apiKeys={apiKeys}
+        selectedModel={selectedModel}
+        onModelChange={onModelChange}
+        availableModels={availableModels}
       />
     </div>
   );

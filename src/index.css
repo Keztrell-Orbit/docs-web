@@ -151,6 +151,31 @@ body {
   animation: shimmer 1.4s ease-in-out infinite;
 }
 
+/* Inline skeleton shimmer on paragraphs being modified by AI */
+.shimmer-active {
+  position: relative;
+}
+
+.shimmer-active::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(59, 130, 246, 0.04) 40%,
+    rgba(59, 130, 246, 0.1) 50%,
+    rgba(59, 130, 246, 0.04) 60%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  pointer-events: none;
+  border-radius: 2px;
+}
+
 /* Pending changes state — dim text to indicate unaccepted AI edits */
 .pending-changes #lexical-editor-input {
   filter: grayscale(40%) opacity(75%);

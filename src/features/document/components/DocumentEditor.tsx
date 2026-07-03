@@ -13,6 +13,7 @@ import { AutoPageBreakPlugin } from "../../../plugins/AutoPageBreakPlugin";
 import { SelectAllPlugin } from "../../../plugins/SelectAllPlugin";
 import { FloatingFormatToolbar } from "../../toolbar/components/FloatingFormatToolbar";
 import { PendingChangesBar } from "./PendingChangesBar";
+import { InlineSkeletonPlugin } from "./InlineSkeletonPlugin";
 
 interface DocumentEditorProps {
   pageDimension: keyof typeof PAGE_DIMENSIONS;
@@ -25,16 +26,6 @@ interface DocumentEditorProps {
   onRejectChanges?: () => void;
 }
 
-const skeletonLines = [
-  { width: "72%", height: "14px" },
-  { width: "88%", height: "14px" },
-  { width: "55%", height: "14px" },
-  { width: "20%", height: "14px" },
-  { width: "76%", height: "14px" },
-  { width: "92%", height: "14px" },
-  { width: "48%", height: "14px" },
-  { width: "64%", height: "14px" },
-];
 
 export function DocumentEditor({
   pageDimension, zoomLevel, fontFamily, fontSize, isGenerating,
@@ -67,7 +58,7 @@ export function DocumentEditor({
 
   return (
     <div
-      className={`flex-1 overflow-auto flex flex-col items-start pt-8 pb-8 pl-4 pr-4 md:pt-8 md:pb-8 md:pl-6 md:pr-6 bg-[#F1F0EA] rounded-none border border-transparent min-w-0 h-full scrollbar-thin ${pendingChanges ? "pending-changes" : ""}`}
+      className={`flex-1 overflow-auto flex flex-col items-start pt-8 pb-8 pl-4 pr-4 md:pt-8 md:pb-8 md:pl-6 md:pr-6 bg-[#F1F0EA] rounded-none border border-transparent min-w-0 h-full scrollbar-thin ${pendingChanges && !isGenerating ? "pending-changes" : ""} ${isGenerating ? "is-generating" : ""}`}
       id="document-column-container"
     >
       <div
@@ -144,6 +135,7 @@ export function DocumentEditor({
             <LinkPlugin />
             <SelectAllPlugin />
             <FloatingFormatToolbar />
+            <InlineSkeletonPlugin isGenerating={isGenerating ?? false} />
           </div>
         </motion.div>
 
@@ -163,28 +155,6 @@ export function DocumentEditor({
         )}
       </div>
 
-      {isGenerating && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="absolute inset-0 bg-white/90 backdrop-blur-[1px] z-10 p-12 space-y-4 pointer-events-none"
-          style={{ width: `calc(${dim.width} * ${zoomLevel / 100})` }}
-        >
-          <div className="w-full space-y-3.5">
-            {skeletonLines.map((line, i) => (
-              <div
-                key={i}
-                className="skeleton-shimmer rounded"
-                style={{
-                  width: line.width,
-                  height: line.height,
-                }}
-              />
-            ))}
-          </div>
-        </motion.div>
-      )}
 
       <AutoPageBreakPlugin
         pageDimension={pageDimension}

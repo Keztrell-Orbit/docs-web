@@ -187,6 +187,7 @@ export default function App() {
         (event: any) => {
           if (event.type === "token") {
             streamBufferRef.current += event.content;
+            console.log("[stream] token received, buffer length:", streamBufferRef.current.length, "last 100:", event.content?.slice(-100));
 
             const toolRegex = /---tool:\{[\s\S]*?\}---/g;
             let toolMatch;
@@ -194,11 +195,20 @@ export default function App() {
               try {
                 const jsonStr = toolMatch[0].replace(/^---tool:/, "").replace(/---$/, "");
                 const tool = JSON.parse(jsonStr);
-                if (editor && tool.name && tool.arguments) {
-                  executeTool(editor, tool.name, tool.arguments);
+                const toolName = tool.name;
+                const toolArgs = tool.arguments
+                  ? tool.arguments
+                  : (() => { const { name, ...rest } = tool; return rest; })();
+                console.log("[stream] extracted tool:", toolName, JSON.stringify(toolArgs)?.slice(0, 150));
+                if (editor && toolName && toolArgs && Object.keys(toolArgs).length > 0) {
+                  executeTool(editor, toolName, toolArgs);
                   setPendingChanges(true);
+                } else {
+                  console.log("[stream] tool skipped - missing editor/name/args:", !!editor, toolName, !!toolArgs, Object.keys(toolArgs || {}).length);
                 }
-              } catch { /* ignore */ }
+              } catch (e) {
+                console.log("[stream] tool parse error:", e);
+              }
             }
 
             const widgetRegex = /---widget:\{[\s\S]*?\}---/g;

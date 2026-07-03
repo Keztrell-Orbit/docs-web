@@ -15,6 +15,8 @@ import { executeTool } from "./features/toolbar/document-tools";
 import type { Widget } from "./types/widgets";
 
 function getDisplayText(full: string): string {
+  const hadTools = /---tool:\{/.test(full);
+  const hadWidgets = /---widget:\{/.test(full);
   let display = full.replace(/---tool:\{[\s\S]*?\}---/g, "");
   display = display.replace(/---widget:\{[\s\S]*?\}---/g, "");
   const positions = [-1];
@@ -29,7 +31,12 @@ function getDisplayText(full: string): string {
       display = display.substring(0, lastPos);
     }
   }
-  return display.trim();
+  display = display.trim();
+  if (!display) {
+    if (hadWidgets) return "Select an option:";
+    if (hadTools) return "Document updated.";
+  }
+  return display;
 }
 
 export default function App() {
@@ -211,13 +218,14 @@ export default function App() {
               }
             }
 
-            const widgetRegex = /---widget:\{[\s\S]*?\}---/g;
-            let widgetMatch;
-            while ((widgetMatch = widgetRegex.exec(streamBufferRef.current)) !== null) {
-              try {
-                const jsonStr = widgetMatch[0].replace(/^---widget:/, "").replace(/---$/, "");
-                lastWidgetRef.current = JSON.parse(jsonStr);
-              } catch { /* ignore */ }
+            const widgetMatches = streamBufferRef.current.match(/---widget:\{[\s\S]*?\}---/g);
+            if (widgetMatches) {
+              for (const match of widgetMatches) {
+                try {
+                  const jsonStr = match.replace(/^---widget:/, "").replace(/---$/, "");
+                  lastWidgetRef.current = JSON.parse(jsonStr);
+                } catch { /* ignore */ }
+              }
             }
 
             setStreamingText(getDisplayText(streamBufferRef.current));

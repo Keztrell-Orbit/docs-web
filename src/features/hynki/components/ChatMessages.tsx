@@ -64,7 +64,7 @@ export function ChatMessages({
               {msg.text}
             </div>
           ) : (
-            <div className="text-gray-700 text-sm max-w-[95%] leading-relaxed whitespace-pre-wrap">
+            <div className="text-gray-700 text-sm max-w-[95%] leading-relaxed whitespace-pre-wrap min-h-[1em]">
               {msg.text}
             </div>
           )}

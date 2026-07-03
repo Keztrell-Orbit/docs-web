@@ -18,10 +18,22 @@ interface DocumentEditorProps {
   zoomLevel: number;
   fontFamily: string;
   fontSize: number;
+  isGenerating?: boolean;
 }
 
+const skeletonLines = [
+  { width: "72%", height: "14px" },
+  { width: "88%", height: "14px" },
+  { width: "55%", height: "14px" },
+  { width: "20%", height: "14px" },
+  { width: "76%", height: "14px" },
+  { width: "92%", height: "14px" },
+  { width: "48%", height: "14px" },
+  { width: "64%", height: "14px" },
+];
+
 export function DocumentEditor({
-  pageDimension, zoomLevel, fontFamily, fontSize,
+  pageDimension, zoomLevel, fontFamily, fontSize, isGenerating,
 }: DocumentEditorProps) {
   const [editor] = useLexicalComposerContext();
   const dim = PAGE_DIMENSIONS[pageDimension];
@@ -130,6 +142,29 @@ export function DocumentEditor({
           </div>
         </motion.div>
       </div>
+
+      {isGenerating && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="absolute inset-0 bg-white/90 backdrop-blur-[1px] z-10 p-12 space-y-4 pointer-events-none"
+          style={{ width: `calc(${dim.width} * ${zoomLevel / 100})` }}
+        >
+          <div className="w-full space-y-3.5">
+            {skeletonLines.map((line, i) => (
+              <div
+                key={i}
+                className="skeleton-shimmer rounded"
+                style={{
+                  width: line.width,
+                  height: line.height,
+                }}
+              />
+            ))}
+          </div>
+        </motion.div>
+      )}
 
       <AutoPageBreakPlugin
         pageDimension={pageDimension}

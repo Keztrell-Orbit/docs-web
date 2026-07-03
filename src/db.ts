@@ -3,7 +3,8 @@ import Dexie, { type Table } from 'dexie';
 export interface Document {
   id: string;
   title: string;
-  content: string; // HTML string for rich text editor
+  content: string; // Lexical JSON string for editor state
+  contentHtml: string; // Derived HTML for outline and AI context
   showLogo: boolean;
   updatedAt: number;
 }
@@ -51,6 +52,7 @@ export async function seedDatabase() {
       id: 'doc-default',
       title: 'Untitled Document',
       content: '',
+      contentHtml: '',
       showLogo: true,
       updatedAt: Date.now(),
     });

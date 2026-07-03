@@ -7,8 +7,7 @@ import { ListPlugin } from "@lexical/react/LexicalListPlugin";
 import { HeadingNode } from "@lexical/rich-text";
 import { ListNode, ListItemNode } from "@lexical/list";
 import { LinkNode } from "@lexical/link";
-import { $generateHtmlFromNodes } from "@lexical/html";
-import { $generateNodesFromDOM } from "@lexical/html";
+import { $generateHtmlFromNodes, $generateNodesFromDOM } from "@lexical/html";
 import { $getRoot } from "lexical";
 import { ImageNode } from "../extensions/ImageNode";
 import { PageBreakNode } from "../extensions/PageBreak";
@@ -42,6 +41,16 @@ function EditorContentHandler({
   useEffect(() => {
     if (!initialContent || loadedRef.current) return;
     loadedRef.current = true;
+    try {
+      const json = JSON.parse(initialContent);
+      if (json && typeof json === "object" && json.root) {
+        const editorState = editor.parseEditorState(json);
+        editor.setEditorState(editorState);
+        return;
+      }
+    } catch {
+      // Not valid JSON — fall through to HTML loading
+    }
     editor.update(() => {
       const parser = new DOMParser();
       const dom = parser.parseFromString(initialContent, "text/html");
@@ -61,13 +70,16 @@ export function EditorProvider({
   onEditorReady,
 }: EditorContextProps) {
   const handleChange = useCallback((_editorState: any, editor: LexicalEditor) => {
-    editor.getEditorState().read(() => {
-      const html = $generateHtmlFromNodes(editor, null);
-      const clean = stripPageBreaks(html);
-      db.documents.update("doc-default", {
-        content: clean,
-        updatedAt: Date.now(),
-      });
+    const editorState = editor.getEditorState();
+    const json = JSON.stringify(editorState.toJSON());
+    const html = editorState.read(() => {
+      const h = $generateHtmlFromNodes(editor, null);
+      return stripPageBreaks(h);
+    });
+    db.documents.update("doc-default", {
+      content: json,
+      contentHtml: html,
+      updatedAt: Date.now(),
     });
   }, []);
 

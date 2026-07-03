@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import type { LexicalEditor } from "lexical";
-import { $getRoot } from "lexical";
-import { $generateHtmlFromNodes, $generateNodesFromDOM } from "@lexical/html";
+import { $generateHtmlFromNodes } from "@lexical/html";
 import { db, seedDatabase } from "./db";
 import { EditorProvider } from "./contexts/EditorContext";
 import { useChatScroll, useOutline } from "./hooks";
@@ -11,8 +10,26 @@ import { FormatToolbar } from "./features/toolbar";
 import { OutlinePanel } from "./features/outline";
 import { DocumentEditor } from "./features/document";
 import { HynkiPanel } from "./features/hynki";
-import { createConversation, sendMessage, listModels } from "./api/chat";
-import type { Widget } from "./types/widgets";
+import { createConversation, streamConversation, listModels } from "./api/chat";
+import { executeTool } from "./features/toolbar/document-tools";
+
+function getDisplayText(full: string): string {
+  let display = full.replace(/---tool:\{[\s\S]*?\}---/g, "");
+  display = display.replace(/---widget:\{[\s\S]*?\}---/g, "");
+  const positions = [-1];
+  let idx = -1;
+  while ((idx = display.indexOf("---tool:", idx + 1)) !== -1) positions.push(idx);
+  idx = -1;
+  while ((idx = display.indexOf("---widget:", idx + 1)) !== -1) positions.push(idx);
+  const lastPos = Math.max(...positions);
+  if (lastPos !== -1) {
+    const suffix = display.substring(lastPos);
+    if (!/^---(tool|widget):\{[\s\S]*?\}---$/.test(suffix)) {
+      display = display.substring(0, lastPos);
+    }
+  }
+  return display.trim();
+}
 
 export default function App() {
   const [inputText, setInputText] = useState("");
@@ -23,6 +40,8 @@ export default function App() {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<LexicalEditor | null>(null);
+  const [streamingText, setStreamingText] = useState("");
+  const streamBufferRef = useRef("");
 
   const [expandedChapters, setExpandedChapters] = useState<Record<string, boolean>>({});
   const [selectedPartId, setSelectedPartId] = useState<string>("");
@@ -89,9 +108,9 @@ export default function App() {
   const currentDoc = useLiveQuery(() => db.documents.get("doc-default"));
   const chatMessages = useLiveQuery(() => db.chats.orderBy("timestamp").toArray());
 
-  const outlineData = useOutline(currentDoc?.content);
+  const outlineData = useOutline(currentDoc?.contentHtml || currentDoc?.content);
 
-  useChatScroll(chatEndRef, chatMessages, isGenerating);
+  useChatScroll(chatEndRef, chatMessages, isGenerating, streamingText);
 
   useEffect(() => {
     seedDatabase();
@@ -115,30 +134,14 @@ export default function App() {
     setTimeout(() => setIsOfflineSaved(true), 400);
   }, []);
 
-  const applyDocumentContent = useCallback((html: string) => {
-    const editor = editorRef.current;
-    if (!editor) return;
-    editor.update(() => {
-      const parser = new DOMParser();
-      const dom = parser.parseFromString(html, "text/html");
-      const nodes = $generateNodesFromDOM(editor, dom);
-      const root = $getRoot();
-      root.clear();
-      root.append(...nodes);
-    });
-  }, []);
-
   const handleSendMessage = useCallback(async (e?: React.FormEvent, customPrompt?: string) => {
     if (e) e.preventDefault();
     const promptToSend = customPrompt || inputText;
     if (!promptToSend.trim() || isGenerating) return;
 
-    if (!customPrompt) {
-      setInputText("");
-    }
+    if (!customPrompt) setInputText("");
 
     const userMessageId = `msg-user-${Date.now()}`;
-    const assistantMessageId = `msg-assistant-${Date.now()}`;
     let convId = conversationId;
 
     await db.chats.add({
@@ -149,6 +152,8 @@ export default function App() {
     });
 
     setIsGenerating(true);
+    setStreamingText("");
+    streamBufferRef.current = "";
 
     try {
       if (!convId) {
@@ -160,63 +165,81 @@ export default function App() {
       const editor = editorRef.current;
       const docHtml = editor
         ? editor.getEditorState().read(() => $generateHtmlFromNodes(editor, null))
-        : currentDoc?.content || "";
+        : currentDoc?.contentHtml || "";
       const docTitleVal = currentDoc?.title || "Document";
 
       const activeProvider = selectedModel.provider;
       const activeApiKey = apiKeys[activeProvider]?.enabled ? apiKeys[activeProvider].key : undefined;
 
-      const data = await sendMessage(convId, promptToSend, {
-        documentContent: docHtml,
-        documentTitle: docTitleVal,
-        provider: activeProvider,
-        model: selectedModel.model,
-        apiKey: activeApiKey,
-      });
+      streamConversation(
+        convId,
+        promptToSend,
+        (event: any) => {
+          if (event.type === "token") {
+            streamBufferRef.current += event.content;
 
-      let textContent = data.content;
+            const toolRegex = /---tool:\{[\s\S]*?\}---/g;
+            let toolMatch;
+            while ((toolMatch = toolRegex.exec(streamBufferRef.current)) !== null) {
+              try {
+                const jsonStr = toolMatch[0].replace(/^---tool:/, "").replace(/---$/, "");
+                const tool = JSON.parse(jsonStr);
+                if (editor && tool.name && tool.arguments) {
+                  executeTool(editor, tool.name, tool.arguments);
+                }
+              } catch { /* ignore */ }
+            }
 
-      const docMatch = textContent.match(/---doc-start---([\s\S]*?)---doc-end---/);
-      if (docMatch) {
-        const docHtmlContent = docMatch[1].trim();
-        textContent = textContent.replace(/---doc-start---[\s\S]*?---doc-end---/g, "").trim();
-        applyDocumentContent(docHtmlContent);
-      }
-
-      const widgetMatch = textContent.match(/---widget:(\{.*\})---/);
-      let widget: Widget | undefined;
-
-      if (widgetMatch) {
-        try {
-          widget = JSON.parse(widgetMatch[1]);
-          textContent = textContent.replace(widgetMatch[0], "").trim();
-        } catch { /* ignore parse errors */ }
-      }
-
-      await db.chats.add({
-        id: assistantMessageId,
-        sender: "assistant",
-        text: textContent,
-        widget: widget as any,
-        timestamp: Date.now(),
-      });
+            setStreamingText(getDisplayText(streamBufferRef.current));
+          }
+        },
+        (error: Error) => {
+          console.error(error);
+          db.chats.add({
+            id: `msg-assistant-${Date.now()}`,
+            sender: "assistant",
+            text: `Error: ${error.message || "Something went wrong communicating with AI."}`,
+            timestamp: Date.now(),
+          });
+          setIsGenerating(false);
+          setStreamingText("");
+        },
+        () => {
+          const finalText = getDisplayText(streamBufferRef.current);
+          db.chats.add({
+            id: `msg-assistant-${Date.now()}`,
+            sender: "assistant",
+            text: finalText,
+            timestamp: Date.now(),
+          });
+          setIsGenerating(false);
+          setStreamingText("");
+        },
+        {
+          documentContent: docHtml,
+          documentTitle: docTitleVal,
+          provider: activeProvider,
+          model: selectedModel.model,
+          apiKey: activeApiKey,
+        }
+      );
     } catch (err: any) {
       console.error(err);
-      await db.chats.add({
-        id: assistantMessageId,
+      db.chats.add({
+        id: `msg-assistant-${Date.now()}`,
         sender: "assistant",
         text: `Error: ${err.message || "Something went wrong communicating with AI."}`,
         timestamp: Date.now(),
       });
-    } finally {
       setIsGenerating(false);
     }
-  }, [inputText, isGenerating, currentDoc, conversationId, selectedModel, apiKeys, applyDocumentContent]);
+  }, [inputText, isGenerating, currentDoc, conversationId, selectedModel, apiKeys]);
 
   const restoreSnapshot = useCallback(async (snapshot: typeof HISTORICAL_VERSIONS[0]) => {
     setIsOfflineSaved(false);
     await db.documents.update("doc-default", {
       content: snapshot.content,
+      contentHtml: snapshot.content,
       showLogo: snapshot.showLogo,
       updatedAt: Date.now(),
     });
@@ -335,11 +358,13 @@ export default function App() {
               zoomLevel={zoomLevel}
               fontFamily={fontFamily}
               fontSize={fontSize}
+              isGenerating={isGenerating}
             />
 
             <HynkiPanel
               isChatOpen={isChatOpen}
               isGenerating={isGenerating}
+              streamingText={streamingText}
               inputText={inputText}
               setInputText={setInputText}
               chatMessages={chatMessages}

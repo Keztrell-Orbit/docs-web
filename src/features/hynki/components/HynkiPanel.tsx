@@ -16,6 +16,7 @@ interface ChatMessageData {
 interface HynkiPanelProps {
   isChatOpen: boolean;
   isGenerating: boolean;
+  streamingText?: string;
   inputText: string;
   setInputText: (text: string) => void;
   chatMessages: ChatMessageData[] | undefined;
@@ -35,7 +36,7 @@ interface HynkiPanelProps {
 }
 
 export function HynkiPanel({
-  isChatOpen, isGenerating, inputText, setInputText,
+  isChatOpen, isGenerating, streamingText, inputText, setInputText,
   chatMessages, isHistoryOpen, setIsHistoryOpen,
   onSendMessage, onResetWorkspace, onClose,
   onHighlightSection, onRestoreSnapshot, chatEndRef,
@@ -91,6 +92,7 @@ export function HynkiPanel({
       <ChatMessages
         messages={chatMessages}
         isGenerating={isGenerating}
+        streamingText={streamingText}
         onSendMessage={onSendMessage}
         onHighlightSection={onHighlightSection}
         chatEndRef={chatEndRef}

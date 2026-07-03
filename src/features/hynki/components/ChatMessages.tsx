@@ -12,14 +12,15 @@ interface ChatMessageData {
 interface ChatMessagesProps {
   messages: ChatMessageData[] | undefined;
   isGenerating: boolean;
+  streamingText?: string;
   onSendMessage: (e?: React.FormEvent, customPrompt?: string) => void;
   onHighlightSection: (keyword: string) => void;
   chatEndRef: React.RefObject<HTMLDivElement | null>;
 }
 
 export function ChatMessages({
-  messages, isGenerating, onSendMessage,
-  onHighlightSection, chatEndRef,
+  messages, isGenerating, streamingText,
+  onSendMessage, onHighlightSection, chatEndRef,
 }: ChatMessagesProps) {
   return (
     <div className="flex-1 overflow-y-auto p-4 space-y-6 bg-[#F1F0EA]" id="chat-scroller">
@@ -123,14 +124,21 @@ export function ChatMessages({
         </div>
       ))}
 
-      {isGenerating && (
+      {isGenerating && streamingText ? (
+        <div className="flex flex-col items-start space-y-1.5" id="chat-streaming-message">
+          <div className="text-gray-700 text-sm max-w-[95%] leading-relaxed whitespace-pre-wrap">
+            {streamingText}
+            <span className="inline-flex w-[2px] h-[1em] ml-0.5 bg-stone-700 animate-pulse align-text-bottom" />
+          </div>
+        </div>
+      ) : isGenerating && !streamingText ? (
         <div className="flex flex-col items-start space-y-1" id="chat-ai-loader">
           <div className="flex items-center space-x-2 text-xs text-gray-500 font-mono animate-pulse">
             <Spinner size={13} className="animate-spin text-stone-700" />
             <span>AI is rewriting document...</span>
           </div>
         </div>
-      )}
+      ) : null}
 
       <div ref={chatEndRef} />
     </div>

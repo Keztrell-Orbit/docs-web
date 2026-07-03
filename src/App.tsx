@@ -12,6 +12,7 @@ import { OutlinePanel } from "./features/outline";
 import { DocumentEditor } from "./features/document";
 import { HynkiPanel } from "./features/hynki";
 import { createConversation, sendMessage, listModels } from "./api/chat";
+import type { Widget } from "./types/widgets";
 
 export default function App() {
   const [inputText, setInputText] = useState("");
@@ -182,8 +183,8 @@ export default function App() {
         applyDocumentContent(docHtmlContent);
       }
 
-      const widgetMatch = textContent.match(/---widget:(\{.*?\})---/);
-      let widget: { type: string; label: string } | undefined;
+      const widgetMatch = textContent.match(/---widget:(\{.*\})---/);
+      let widget: Widget | undefined;
 
       if (widgetMatch) {
         try {

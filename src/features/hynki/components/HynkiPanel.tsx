@@ -1,13 +1,9 @@
 import { Sparkle, ClockCounterClockwise, ArrowClockwise, X } from "@phosphor-icons/react";
 import type { DocSnapshot } from "../../../types";
+import type { Widget } from "../../../types/widgets";
 import { HistoryDrawer } from "./HistoryDrawer";
 import { ChatMessages } from "./ChatMessages";
 import { ChatInput } from "./ChatInput";
-
-interface Widget {
-  type: string;
-  label: string;
-}
 
 interface ChatMessageData {
   id: string;

@@ -1,9 +1,5 @@
 import { Info, Spinner } from "@phosphor-icons/react";
-
-interface Widget {
-  type: string;
-  label: string;
-}
+import type { Widget } from "../../../types/widgets";
 
 interface ChatMessageData {
   id: string;
@@ -74,6 +70,9 @@ export function ChatMessages({
 
           {msg.widget && (
             <div className="w-full my-1" id={`widget-${msg.id}`}>
+              {msg.widget.question && (
+                <p className="text-xs text-stone-500 mb-2">{msg.widget.question}</p>
+              )}
               {msg.widget.type === "governing-law" ? (
                 <button
                   onClick={() => onHighlightSection("Governing Law")}
@@ -92,6 +91,24 @@ export function ChatMessages({
                   <span className="font-medium text-emerald-700">{msg.widget.label}</span>
                   <span className="text-stone-400 text-[10px] ml-1">›</span>
                 </button>
+              ) : msg.widget.type === "picker" && msg.widget.options ? (
+                <div className="flex flex-wrap gap-2">
+                  {msg.widget.options.map((opt) => {
+                    const isHex = /^#[0-9A-Fa-f]{6}$/.test(opt.value);
+                    return (
+                      <button
+                        key={opt.value}
+                        onClick={() => onSendMessage(undefined, `Use ${opt.label} (${opt.value})`)}
+                        className="inline-flex items-center gap-1.5 bg-white hover:bg-[#EAE8DD] text-xs text-stone-700 py-2 px-3 rounded-none transition-all shadow-2xs font-medium border border-[#E1DFD5]"
+                      >
+                        {isHex ? (
+                          <span className="w-3.5 h-3.5 rounded-full border border-stone-300 flex-shrink-0" style={{ backgroundColor: opt.value }} />
+                        ) : null}
+                        <span>{opt.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               ) : (
                 <button
                   onClick={() => onHighlightSection(msg.widget?.label || "")}

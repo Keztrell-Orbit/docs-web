@@ -12,6 +12,7 @@ import { $isPageBreakNode } from "../../../extensions/PageBreak";
 import { AutoPageBreakPlugin } from "../../../plugins/AutoPageBreakPlugin";
 import { SelectAllPlugin } from "../../../plugins/SelectAllPlugin";
 import { FloatingFormatToolbar } from "../../toolbar/components/FloatingFormatToolbar";
+import { PendingChangesBar } from "./PendingChangesBar";
 
 interface DocumentEditorProps {
   pageDimension: keyof typeof PAGE_DIMENSIONS;
@@ -19,6 +20,9 @@ interface DocumentEditorProps {
   fontFamily: string;
   fontSize: number;
   isGenerating?: boolean;
+  pendingChanges?: boolean;
+  onAcceptChanges?: () => void;
+  onRejectChanges?: () => void;
 }
 
 const skeletonLines = [
@@ -34,6 +38,7 @@ const skeletonLines = [
 
 export function DocumentEditor({
   pageDimension, zoomLevel, fontFamily, fontSize, isGenerating,
+  pendingChanges, onAcceptChanges, onRejectChanges,
 }: DocumentEditorProps) {
   const [editor] = useLexicalComposerContext();
   const dim = PAGE_DIMENSIONS[pageDimension];
@@ -62,7 +67,7 @@ export function DocumentEditor({
 
   return (
     <div
-      className="flex-1 overflow-auto flex flex-col items-start pt-8 pb-8 pl-4 pr-4 md:pt-8 md:pb-8 md:pl-6 md:pr-6 bg-[#F1F0EA] rounded-none border border-transparent min-w-0 h-full scrollbar-thin"
+      className={`flex-1 overflow-auto flex flex-col items-start pt-8 pb-8 pl-4 pr-4 md:pt-8 md:pb-8 md:pl-6 md:pr-6 bg-[#F1F0EA] rounded-none border border-transparent min-w-0 h-full scrollbar-thin ${pendingChanges ? "pending-changes" : ""}`}
       id="document-column-container"
     >
       <div
@@ -141,6 +146,21 @@ export function DocumentEditor({
             <FloatingFormatToolbar />
           </div>
         </motion.div>
+
+        {pendingChanges && !isGenerating && onAcceptChanges && onRejectChanges && (
+          <div
+            className="absolute z-20"
+            style={{
+              top: "96px",
+              left: "96px",
+            }}
+          >
+            <PendingChangesBar
+              onAccept={onAcceptChanges}
+              onReject={onRejectChanges}
+            />
+          </div>
+        )}
       </div>
 
       {isGenerating && (

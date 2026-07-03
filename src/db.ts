@@ -14,8 +14,10 @@ export interface ChatMessage {
   sender: 'user' | 'assistant';
   text: string;
   widget?: {
-    type: 'governing-law' | 'assignor-set';
+    type: string;
     label: string;
+    question?: string;
+    options?: { label: string; value: string }[];
     payload?: any;
   };
   timestamp: number;

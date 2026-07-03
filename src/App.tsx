@@ -12,6 +12,7 @@ import { DocumentEditor } from "./features/document";
 import { HynkiPanel } from "./features/hynki";
 import { createConversation, streamConversation, listModels } from "./api/chat";
 import { executeTool } from "./features/toolbar/document-tools";
+import type { Widget } from "./types/widgets";
 
 function getDisplayText(full: string): string {
   let display = full.replace(/---tool:\{[\s\S]*?\}---/g, "");
@@ -42,6 +43,9 @@ export default function App() {
   const editorRef = useRef<LexicalEditor | null>(null);
   const [streamingText, setStreamingText] = useState("");
   const streamBufferRef = useRef("");
+  const lastWidgetRef = useRef<Widget | null>(null);
+  const [pendingChanges, setPendingChanges] = useState(false);
+  const [preGenSnapshot, setPreGenSnapshot] = useState<string | null>(null);
 
   const [expandedChapters, setExpandedChapters] = useState<Record<string, boolean>>({});
   const [selectedPartId, setSelectedPartId] = useState<string>("");
@@ -154,6 +158,9 @@ export default function App() {
     setIsGenerating(true);
     setStreamingText("");
     streamBufferRef.current = "";
+    lastWidgetRef.current = null;
+    setPendingChanges(false);
+    setPreGenSnapshot(null);
 
     try {
       if (!convId) {
@@ -171,6 +178,9 @@ export default function App() {
       const activeProvider = selectedModel.provider;
       const activeApiKey = apiKeys[activeProvider]?.enabled ? apiKeys[activeProvider].key : undefined;
 
+      const snap = editor ? editor.getEditorState().toJSON() : null;
+      if (snap) setPreGenSnapshot(JSON.stringify(snap));
+
       streamConversation(
         convId,
         promptToSend,
@@ -186,7 +196,17 @@ export default function App() {
                 const tool = JSON.parse(jsonStr);
                 if (editor && tool.name && tool.arguments) {
                   executeTool(editor, tool.name, tool.arguments);
+                  setPendingChanges(true);
                 }
+              } catch { /* ignore */ }
+            }
+
+            const widgetRegex = /---widget:\{[\s\S]*?\}---/g;
+            let widgetMatch;
+            while ((widgetMatch = widgetRegex.exec(streamBufferRef.current)) !== null) {
+              try {
+                const jsonStr = widgetMatch[0].replace(/^---widget:/, "").replace(/---$/, "");
+                lastWidgetRef.current = JSON.parse(jsonStr);
               } catch { /* ignore */ }
             }
 
@@ -203,13 +223,17 @@ export default function App() {
           });
           setIsGenerating(false);
           setStreamingText("");
+          setPendingChanges(false);
+          setPreGenSnapshot(null);
         },
         () => {
           const finalText = getDisplayText(streamBufferRef.current);
+          const widget = lastWidgetRef.current;
           db.chats.add({
             id: `msg-assistant-${Date.now()}`,
             sender: "assistant",
             text: finalText,
+            widget: widget || undefined,
             timestamp: Date.now(),
           });
           setIsGenerating(false);
@@ -234,6 +258,25 @@ export default function App() {
       setIsGenerating(false);
     }
   }, [inputText, isGenerating, currentDoc, conversationId, selectedModel, apiKeys]);
+
+  const handleAcceptChanges = useCallback(() => {
+    setPendingChanges(false);
+    setPreGenSnapshot(null);
+  }, []);
+
+  const handleRejectChanges = useCallback(() => {
+    const editor = editorRef.current;
+    const snapshot = preGenSnapshot;
+    if (editor && snapshot) {
+      try {
+        const json = JSON.parse(snapshot);
+        const editorState = editor.parseEditorState(json);
+        editor.setEditorState(editorState);
+      } catch { /* ignore */ }
+    }
+    setPendingChanges(false);
+    setPreGenSnapshot(null);
+  }, [preGenSnapshot]);
 
   const restoreSnapshot = useCallback(async (snapshot: typeof HISTORICAL_VERSIONS[0]) => {
     setIsOfflineSaved(false);
@@ -359,6 +402,9 @@ export default function App() {
               fontFamily={fontFamily}
               fontSize={fontSize}
               isGenerating={isGenerating}
+              pendingChanges={pendingChanges}
+              onAcceptChanges={handleAcceptChanges}
+              onRejectChanges={handleRejectChanges}
             />
 
             <HynkiPanel

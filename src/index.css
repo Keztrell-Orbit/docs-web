@@ -151,3 +151,9 @@ body {
   animation: shimmer 1.4s ease-in-out infinite;
 }
 
+/* Pending changes state — dim text to indicate unaccepted AI edits */
+.pending-changes #lexical-editor-input {
+  filter: grayscale(40%) opacity(75%);
+  transition: filter 0.3s ease;
+}
+

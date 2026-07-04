@@ -1,3 +1,4 @@
+import { useState, useCallback } from "react";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
@@ -6,6 +7,9 @@ import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
 import { motion } from "motion/react";
 import { PAGE_DIMENSIONS } from "../../../types";
 import { LayoutPlugin } from "../../../editor/layout-plugin";
+import type { LayoutData } from "../../../editor/layout-plugin";
+import { PageBackground } from "../../../renderer/page-background";
+import { PageBreakIndicator } from "../../../renderer/page-break-indicator";
 import { SelectAllPlugin } from "../../../plugins/SelectAllPlugin";
 import { FloatingFormatToolbar } from "../../toolbar/components/FloatingFormatToolbar";
 import { PendingChangesBar } from "./PendingChangesBar";
@@ -40,6 +44,11 @@ export function DocumentEditor({
   const dim = PAGE_DIMENSIONS[pageDimension];
   const pageConfig = PAPER_MAP[pageDimension];
 
+  const [layoutData, setLayoutData] = useState<LayoutData | null>(null);
+  const handleLayoutUpdate = useCallback((data: LayoutData) => {
+    setLayoutData(data);
+  }, []);
+
   return (
     <div
       className={`flex-1 overflow-auto flex flex-col items-start pt-8 pb-8 pl-4 pr-4 md:pt-8 md:pb-8 md:pl-6 md:pr-6 bg-[#F1F0EA] rounded-none border border-transparent min-w-0 h-full scrollbar-thin ${pendingChanges && !isGenerating ? "pending-changes" : ""} ${isGenerating ? "is-generating" : ""}`}
@@ -58,7 +67,39 @@ export function DocumentEditor({
             position: "relative",
             pointerEvents: "none",
           }}
-        />
+        >
+          {layoutData && (
+            <div
+              style={{
+                position: "relative",
+                width: layoutData.paperWidth,
+                height: layoutData.totalHeight,
+                pointerEvents: "none",
+                userSelect: "none",
+                boxSizing: "border-box",
+              }}
+            >
+              {layoutData.pages.map((page) => (
+                <PageBackground
+                  key={page.pageIndex}
+                  pageIndex={page.pageIndex}
+                  top={page.top}
+                  paperWidth={layoutData.paperWidth}
+                  paperHeight={layoutData.paperHeight}
+                />
+              ))}
+              {layoutData.pages.map((page, i) =>
+                i < layoutData.pages.length - 1 ? (
+                  <PageBreakIndicator
+                    key={`break-${page.pageIndex}`}
+                    top={page.top + layoutData.paperHeight}
+                    width={layoutData.paperWidth}
+                  />
+                ) : null
+              )}
+            </div>
+          )}
+        </div>
 
         <motion.div
           style={{
@@ -68,7 +109,7 @@ export function DocumentEditor({
             width: dim.width,
             minHeight: "100%",
             padding: "96px",
-            zIndex: 1,
+            boxSizing: "border-box",
             fontFamily: fontFamily === 'Inter' ? 'var(--font-sans)' : fontFamily === 'Playfair Display' ? 'var(--font-serif)' : fontFamily === 'JetBrains Mono' ? 'var(--font-mono)' : 'sans-serif',
             fontSize: `${fontSize}px`,
             zoom: zoomLevel / 100,
@@ -113,6 +154,7 @@ export function DocumentEditor({
       <LayoutPlugin
         pageConfig={pageConfig}
         zoomLevel={zoomLevel}
+        onLayoutUpdate={handleLayoutUpdate}
       />
     </div>
   );

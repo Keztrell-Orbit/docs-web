@@ -85,7 +85,7 @@ export default function App() {
     }
   });
 
-  const handleSaveSettings = useCallback((newKeys: typeof apiKeys) => {
+  const handleSaveSettings = useCallback((newKeys: Record<string, { enabled: boolean; key: string }>) => {
     setApiKeys(newKeys);
     localStorage.setItem("byok-settings", JSON.stringify(newKeys));
 

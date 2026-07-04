@@ -10,17 +10,12 @@ import { LinkNode } from "@lexical/link";
 import { $generateHtmlFromNodes, $generateNodesFromDOM } from "@lexical/html";
 import { $getRoot } from "lexical";
 import { ImageNode } from "../extensions/ImageNode";
-import { PageBreakNode } from "../extensions/PageBreak";
 import { db } from "../db";
 
 interface EditorContextProps {
   children: React.ReactNode;
   initialContent?: string;
   onEditorReady?: (editor: LexicalEditor) => void;
-}
-
-function stripPageBreaks(html: string): string {
-  return html.replace(/<div data-page-break[^>]*><\/div>/g, "");
 }
 
 function EditorContentHandler({
@@ -73,8 +68,7 @@ export function EditorProvider({
     const editorState = editor.getEditorState();
     const json = JSON.stringify(editorState.toJSON());
     const html = editorState.read(() => {
-      const h = $generateHtmlFromNodes(editor, null);
-      return stripPageBreaks(h);
+      return $generateHtmlFromNodes(editor, null);
     });
     db.documents.update("doc-default", {
       content: json,
@@ -91,7 +85,6 @@ export function EditorProvider({
       LinkNode,
       ListNode,
       ListItemNode,
-      PageBreakNode,
     ],
     onError: (error: Error) => {
       console.error("Lexical editor error:", error);

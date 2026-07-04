@@ -534,7 +534,7 @@ export function FormatToolbar({
           onClick={() => setIsStyleOpen(!isStyleOpen)}
         >
           <span className="text-xs text-gray-700 font-medium min-w-[60px]">
-            {active.blockType === "p" ? "Normal text" : active.blockType === "h2" ? "Heading 1" : "Heading 2"}
+            {active.blockType === "p" ? "Normal text" : active.blockType === "h1" ? "Title" : active.blockType === "h2" ? "Heading 1" : "Heading 2"}
           </span>
           <CaretDown size={10} className="text-gray-400 ml-0.5" />
         </div>
@@ -902,6 +902,7 @@ export function FormatToolbar({
             >
               {[
                 { label: "Normal text", value: "p" },
+                { label: "Title", value: "h1" },
                 { label: "Heading 1", value: "h2" },
                 { label: "Heading 2", value: "h3" },
               ].map((opt) => (

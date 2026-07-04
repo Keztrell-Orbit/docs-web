@@ -1,19 +1,16 @@
-import { useCallback, useSyncExternalStore } from "react";
-import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
 import { LinkPlugin } from "@lexical/react/LexicalLinkPlugin";
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
 import { motion } from "motion/react";
-import { $getRoot } from "lexical";
 import { PAGE_DIMENSIONS } from "../../../types";
-import { $isPageBreakNode } from "../../../extensions/PageBreak";
-import { AutoPageBreakPlugin } from "../../../plugins/AutoPageBreakPlugin";
+import { LayoutPlugin } from "../../../editor/layout-plugin";
 import { SelectAllPlugin } from "../../../plugins/SelectAllPlugin";
 import { FloatingFormatToolbar } from "../../toolbar/components/FloatingFormatToolbar";
 import { PendingChangesBar } from "./PendingChangesBar";
 import { InlineSkeletonPlugin } from "./InlineSkeletonPlugin";
+import type { PageConfig } from "../../../layout/types";
 
 interface DocumentEditorProps {
   pageDimension: keyof typeof PAGE_DIMENSIONS;
@@ -26,35 +23,22 @@ interface DocumentEditorProps {
   onRejectChanges?: () => void;
 }
 
+const MARGIN = 96;
+const GAP = 24;
+
+const PAPER_MAP: Record<keyof typeof PAGE_DIMENSIONS, PageConfig> = {
+  A4: { paper: "A4", marginTop: MARGIN, marginBottom: MARGIN, marginLeft: 80, marginRight: 80, pageGap: GAP },
+  A5: { paper: "A4", marginTop: MARGIN, marginBottom: MARGIN, marginLeft: 80, marginRight: 80, pageGap: GAP },
+  A6: { paper: "A4", marginTop: MARGIN, marginBottom: MARGIN, marginLeft: 80, marginRight: 80, pageGap: GAP },
+  Letter: { paper: "Letter", marginTop: MARGIN, marginBottom: MARGIN, marginLeft: 80, marginRight: 80, pageGap: GAP },
+};
 
 export function DocumentEditor({
   pageDimension, zoomLevel, fontFamily, fontSize, isGenerating,
   pendingChanges, onAcceptChanges, onRejectChanges,
 }: DocumentEditorProps) {
-  const [editor] = useLexicalComposerContext();
   const dim = PAGE_DIMENSIONS[pageDimension];
-  const pageH = parseInt(dim.minHeight);
-
-  const pageCount = useSyncExternalStore(
-    useCallback(
-      (cb) => editor.registerUpdateListener(() => cb()),
-      [editor],
-    ),
-    useCallback(
-      () => editor.getEditorState().read(() => {
-        let count = 1;
-        for (const child of $getRoot().getChildren()) {
-          if ($isPageBreakNode(child)) count++;
-        }
-        return count;
-      }),
-      [editor],
-    ),
-  );
-
-  const pageBreakCount = pageCount - 1;
-  const totalPageBgHeight = pageCount * pageH + pageBreakCount * 10;
-  const editorMinHeight = Math.max(0, totalPageBgHeight - 192);
+  const pageConfig = PAPER_MAP[pageDimension];
 
   return (
     <div
@@ -66,44 +50,15 @@ export function DocumentEditor({
         style={{ width: `calc(${dim.width} * ${zoomLevel / 100})`, marginBottom: "2rem" }}
         id="zoom-scaling-layout-wrapper"
       >
-        <motion.div
-          style={{ zoom: zoomLevel / 100, width: dim.width }}
-        >
-          {Array.from({ length: pageCount }).map((_, i) => (
-            <div
-              key={i}
-              style={{
-                width: dim.width,
-                height: dim.minHeight,
-                background: "white",
-                marginBottom: i < pageCount - 1 ? "10px" : "0",
-                boxShadow:
-                  i < pageCount - 1
-                    ? "0 1px 3px rgba(0,0,0,0.08)"
-                    : "0 8px 24px -8px rgba(0,0,0,0.15), 0 1px 3px rgba(0,0,0,0.08)",
-                border: "1px solid #E5E4E0",
-                position: "relative",
-              }}
-            >
-              <span
-                style={{
-                  position: "absolute",
-                  bottom: "20px",
-                  left: 0,
-                  right: 0,
-                  textAlign: "center",
-                  fontSize: "11px",
-                  color: "#9CA3AF",
-                  fontFamily: "var(--font-sans)",
-                  userSelect: "none",
-                  pointerEvents: "none",
-                }}
-              >
-                {i + 1}
-              </span>
-            </div>
-          ))}
-        </motion.div>
+        <div
+          id="page-backgrounds-container"
+          style={{
+            zoom: zoomLevel / 100,
+            width: dim.width,
+            position: "relative",
+            pointerEvents: "none",
+          }}
+        />
 
         <motion.div
           style={{
@@ -111,7 +66,7 @@ export function DocumentEditor({
             top: 0,
             left: 0,
             width: dim.width,
-            minHeight: `${editorMinHeight}px`,
+            minHeight: "100%",
             padding: "96px",
             zIndex: 1,
             fontFamily: fontFamily === 'Inter' ? 'var(--font-sans)' : fontFamily === 'Playfair Display' ? 'var(--font-serif)' : fontFamily === 'JetBrains Mono' ? 'var(--font-mono)' : 'sans-serif',
@@ -155,9 +110,8 @@ export function DocumentEditor({
         )}
       </div>
 
-
-      <AutoPageBreakPlugin
-        pageDimension={pageDimension}
+      <LayoutPlugin
+        pageConfig={pageConfig}
         zoomLevel={zoomLevel}
       />
     </div>

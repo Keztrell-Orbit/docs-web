@@ -45,7 +45,9 @@ function AppContent() {
 
   const tree = useMemo(() => {
     const result = paginate(measuredBlocks, A4.width, A4.height, defaultMargins, doc.id);
-    if (import.meta.env.DEV && measuredHeights) validateLayoutTree(result);
+    if (import.meta.env.DEV && measuredHeights && measuredHeights.size === doc.blocks.length) {
+      validateLayoutTree(result);
+    }
     return result;
   }, [measuredBlocks, measuredHeights]);
 

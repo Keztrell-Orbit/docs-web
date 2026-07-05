@@ -1,17 +1,22 @@
-import { useMemo, useState, useEffect } from "react";
-import { createSampleDocument } from "./editor/model.ts";
-import { placeholderBlockMeasurer } from "./editor/services/blockMeasurer.ts";
-import { A4, defaultMargins, measureBlocks, paginate, buildSnapshot } from "./layout/index.ts";
+import { useState, useEffect, useMemo } from "react";
+import { buildSnapshot } from "./layout/index.ts";
+import { A4, defaultMargins, measureBlocks, paginate } from "./layout/index.ts";
 import { validateLayoutTree } from "./layout/validate.ts";
 import { useDomMeasurements } from "./renderer/hooks/useDomMeasurements.ts";
 import { HiddenMeasurementLayer } from "./renderer/HiddenMeasurementLayer.tsx";
 import { printComparisonTable } from "./debug/printComparisonTable.ts";
 import { InteractiveWorkspace } from "./editor/interaction/components/InteractiveWorkspace.tsx";
+import {
+  DocumentProvider,
+  useDocumentContext,
+  DocumentControllerProvider,
+} from "./editor/core/document/index.ts";
 import type { Block, BlockMeasurer, BlockMeasureResult } from "./editor/types.ts";
 
-export default function App() {
+function AppContent() {
   const [debugLayout, setDebugLayout] = useState(true);
-  const doc = useMemo(() => createSampleDocument(), []);
+  const { state: docState } = useDocumentContext();
+  const doc = docState.document;
   const contentWidth = A4.width - defaultMargins.left - defaultMargins.right;
 
   const [measuredHeights, setMeasuredHeights] = useState<Map<string, number> | null>(null);
@@ -21,12 +26,16 @@ export default function App() {
       return {
         measure(block: Block): BlockMeasureResult {
           const h = measuredHeights.get(block.id);
-          const contentHeight = h ?? placeholderBlockMeasurer.measure(block).contentHeight;
+          const contentHeight = h ?? 0;
           return { contentHeight, marginTop: 0, marginBottom: 0, paddingTop: 0, paddingBottom: 0, borderTop: 0, borderBottom: 0 };
         },
       };
     }
-    return placeholderBlockMeasurer;
+    return {
+      measure(_block: Block): BlockMeasureResult {
+        return { contentHeight: 0, marginTop: 0, marginBottom: 0, paddingTop: 0, paddingBottom: 0, borderTop: 0, borderBottom: 0 };
+      },
+    };
   }, [measuredHeights]);
 
   const measuredBlocks = useMemo(
@@ -36,9 +45,9 @@ export default function App() {
 
   const tree = useMemo(() => {
     const result = paginate(measuredBlocks, A4.width, A4.height, defaultMargins, doc.id);
-    if (import.meta.env.DEV) validateLayoutTree(result);
+    if (import.meta.env.DEV && measuredHeights) validateLayoutTree(result);
     return result;
-  }, [measuredBlocks]);
+  }, [measuredBlocks, measuredHeights]);
 
   const metricsMap = useMemo(() => {
     const map = new Map<string, BlockMeasureResult>();
@@ -93,5 +102,15 @@ export default function App() {
         debugInteraction={debugLayout}
       />
     </>
+  );
+}
+
+export default function App() {
+  return (
+    <DocumentProvider>
+      <DocumentControllerProvider>
+        <AppContent />
+      </DocumentControllerProvider>
+    </DocumentProvider>
   );
 }

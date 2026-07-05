@@ -6,7 +6,7 @@ import { validateLayoutTree } from "./layout/validate.ts";
 import { useDomMeasurements } from "./renderer/hooks/useDomMeasurements.ts";
 import { HiddenMeasurementLayer } from "./renderer/HiddenMeasurementLayer.tsx";
 import { printComparisonTable } from "./debug/printComparisonTable.ts";
-import { WorkspaceRenderer } from "./renderer/WorkspaceRenderer.tsx";
+import { InteractiveWorkspace } from "./editor/interaction/components/InteractiveWorkspace.tsx";
 import type { Block, BlockMeasurer, BlockMeasureResult } from "./editor/types.ts";
 
 export default function App() {
@@ -86,10 +86,11 @@ export default function App() {
         contentWidth={contentWidth}
         onMeasure={setMeasuredHeights}
       />
-      <WorkspaceRenderer
+      <InteractiveWorkspace
         tree={tree}
         debugLayout={debugLayout}
         domMeasurements={domMeasurements}
+        debugInteraction={debugLayout}
       />
     </>
   );

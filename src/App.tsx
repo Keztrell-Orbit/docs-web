@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { createSampleDocument } from "./editor/model.ts";
 import { placeholderBlockMeasurer } from "./editor/services/blockMeasurer.ts";
 import { A4, defaultMargins, measureBlocks, paginate, buildSnapshot } from "./layout/index.ts";
@@ -29,23 +29,36 @@ export default function App() {
     return placeholderBlockMeasurer;
   }, [measuredHeights]);
 
+  const measuredBlocks = useMemo(
+    () => measureBlocks(doc.blocks, measurer),
+    [doc.blocks, measurer],
+  );
+
   const tree = useMemo(() => {
-    const measured = measureBlocks(doc.blocks, measurer);
-    const result = paginate(measured, A4.width, A4.height, defaultMargins, doc.id);
+    const result = paginate(measuredBlocks, A4.width, A4.height, defaultMargins, doc.id);
     if (import.meta.env.DEV) validateLayoutTree(result);
     return result;
-  }, [doc, measurer]);
+  }, [measuredBlocks]);
 
-  const domMeasurements = useDomMeasurements(debugLayout, tree, measuredHeights);
+  const metricsMap = useMemo(() => {
+    const map = new Map<string, BlockMeasureResult>();
+    for (const mb of measuredBlocks) {
+      map.set(mb.blockId, mb.metrics);
+    }
+    return map;
+  }, [measuredBlocks]);
 
-  const prevJson = useRef("");
+  const domMeasurements = useDomMeasurements(
+    debugLayout,
+    tree,
+    measuredHeights,
+    metricsMap,
+  );
+
   useEffect(() => {
     if (!debugLayout || domMeasurements.length === 0) return;
-    const json = JSON.stringify(domMeasurements.map((m) => [m.blockId, m.viewportTop, m.layoutHeight]));
-    if (json === prevJson.current) return;
-    prevJson.current = json;
     printComparisonTable(tree, domMeasurements);
-  });
+  }, [debugLayout, domMeasurements, tree]);
 
   return (
     <>

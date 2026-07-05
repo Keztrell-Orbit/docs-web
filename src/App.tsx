@@ -1,12 +1,83 @@
-import { createSampleDocument } from "./features/document/model.ts";
-import { placeholderBlockMeasurer } from "./features/document/services/blockMeasurer.ts";
-import { A4, defaultMargins } from "./features/layout-engine/geometry/PageGeometry.ts";
-import { useLayoutTree } from "./features/layout-engine/hooks/useLayoutTree.ts";
-import { Workspace } from "./features/workspace/components/Workspace.tsx";
+import { useMemo, useState, useRef, useEffect } from "react";
+import { createSampleDocument } from "./editor/model.ts";
+import { placeholderBlockMeasurer } from "./editor/services/blockMeasurer.ts";
+import { A4, defaultMargins, measureBlocks, paginate, buildSnapshot } from "./layout/index.ts";
+import { validateLayoutTree } from "./layout/validate.ts";
+import { useDomMeasurements } from "./renderer/hooks/useDomMeasurements.ts";
+import { HiddenMeasurementLayer } from "./renderer/HiddenMeasurementLayer.tsx";
+import { printComparisonTable } from "./debug/printComparisonTable.ts";
+import { WorkspaceRenderer } from "./renderer/WorkspaceRenderer.tsx";
+import type { Block, BlockMeasurer, BlockMeasureResult } from "./editor/types.ts";
 
 export default function App() {
-  const document = createSampleDocument();
-  const layoutTree = useLayoutTree(document, A4, defaultMargins, placeholderBlockMeasurer);
+  const [debugLayout, setDebugLayout] = useState(true);
+  const doc = useMemo(() => createSampleDocument(), []);
+  const contentWidth = A4.width - defaultMargins.left - defaultMargins.right;
 
-  return <Workspace layoutTree={layoutTree} />;
+  const [measuredHeights, setMeasuredHeights] = useState<Map<string, number> | null>(null);
+
+  const measurer: BlockMeasurer = useMemo(() => {
+    if (measuredHeights) {
+      return {
+        measure(block: Block): BlockMeasureResult {
+          const h = measuredHeights.get(block.id);
+          const contentHeight = h ?? placeholderBlockMeasurer.measure(block).contentHeight;
+          return { contentHeight, marginTop: 0, marginBottom: 0, paddingTop: 0, paddingBottom: 0, borderTop: 0, borderBottom: 0 };
+        },
+      };
+    }
+    return placeholderBlockMeasurer;
+  }, [measuredHeights]);
+
+  const tree = useMemo(() => {
+    const measured = measureBlocks(doc.blocks, measurer);
+    const result = paginate(measured, A4.width, A4.height, defaultMargins, doc.id);
+    if (import.meta.env.DEV) validateLayoutTree(result);
+    return result;
+  }, [doc, measurer]);
+
+  const domMeasurements = useDomMeasurements(debugLayout, tree, measuredHeights);
+
+  const prevJson = useRef("");
+  useEffect(() => {
+    if (!debugLayout || domMeasurements.length === 0) return;
+    const json = JSON.stringify(domMeasurements.map((m) => [m.blockId, m.viewportTop, m.layoutHeight]));
+    if (json === prevJson.current) return;
+    prevJson.current = json;
+    printComparisonTable(tree, domMeasurements);
+  });
+
+  return (
+    <>
+      <button
+        onClick={() => setDebugLayout((p) => !p)}
+        style={{
+          position: "fixed",
+          top: 8,
+          right: 8,
+          zIndex: 9999,
+          padding: "4px 10px",
+          fontSize: 12,
+          cursor: "pointer",
+          background: debugLayout ? "#ef4444" : "#22c55e",
+          color: "#fff",
+          border: "none",
+          borderRadius: 4,
+          fontFamily: "monospace",
+        }}
+      >
+        Debug: {debugLayout ? "ON" : "OFF"}
+      </button>
+      <HiddenMeasurementLayer
+        blocks={doc.blocks.map((b) => ({ blockId: b.id, snapshot: buildSnapshot(b) }))}
+        contentWidth={contentWidth}
+        onMeasure={setMeasuredHeights}
+      />
+      <WorkspaceRenderer
+        tree={tree}
+        debugLayout={debugLayout}
+        domMeasurements={domMeasurements}
+      />
+    </>
+  );
 }

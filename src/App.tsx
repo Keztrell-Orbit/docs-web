@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { buildSnapshot } from "./layout/index.ts";
 import { A4, defaultMargins, measureBlocks, paginate } from "./layout/index.ts";
 import { validateLayoutTree } from "./layout/validate.ts";
@@ -12,6 +12,8 @@ import {
   DocumentControllerProvider,
 } from "./editor/core/document/index.ts";
 import type { Block, BlockMeasurer, BlockMeasureResult } from "./editor/types.ts";
+import { TextLayoutService } from "./editor/interaction/services/TextLayoutService.ts";
+import { computeTextLayouts } from "./editor/core/layout/computeTextLayouts.ts";
 
 function AppContent() {
   const [debugLayout, setDebugLayout] = useState(true);
@@ -59,6 +61,16 @@ function AppContent() {
     return map;
   }, [measuredBlocks]);
 
+  const textLayoutServiceRef = useRef<TextLayoutService | null>(null);
+  if (!textLayoutServiceRef.current) {
+    textLayoutServiceRef.current = new TextLayoutService();
+  }
+
+  const textLayoutRegistry = useMemo(
+    () => computeTextLayouts(tree, doc.version, textLayoutServiceRef.current!),
+    [tree, doc.version],
+  );
+
   const domMeasurements = useDomMeasurements(
     debugLayout,
     tree,
@@ -99,6 +111,7 @@ function AppContent() {
       />
       <InteractiveWorkspace
         tree={tree}
+        textLayoutRegistry={textLayoutRegistry}
         debugLayout={debugLayout}
         domMeasurements={domMeasurements}
         debugInteraction={debugLayout}

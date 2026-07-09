@@ -1,0 +1,16 @@
+export { InsertTextOperation } from "./InsertTextOperation.ts";
+export { DeleteTextOperation } from "./DeleteTextOperation.ts";
+export { ReplaceTextOperation } from "./ReplaceTextOperation.ts";
+export { SplitParagraphOperation } from "./SplitParagraphOperation.ts";
+export { MergeParagraphOperation } from "./MergeParagraphOperation.ts";
+export { InsertBlockOperation } from "./InsertBlockOperation.ts";
+export { DeleteBlockOperation } from "./DeleteBlockOperation.ts";
+export { MoveBlockOperation } from "./MoveBlockOperation.ts";
+export { DuplicateBlockOperation } from "./DuplicateBlockOperation.ts";
+export { InsertImageOperation } from "./InsertImageOperation.ts";
+export { InsertTableOperation } from "./InsertTableOperation.ts";
+export { ChangeBlockTypeOperation } from "./ChangeBlockTypeOperation.ts";
+export { SetBlockStyleOperation } from "./SetBlockStyleOperation.ts";
+export { SetInlineStyleOperation } from "./SetInlineStyleOperation.ts";
+export { CompositeOperation } from "./CompositeOperation.ts";
+export type { DocumentOperation } from "./DocumentOperation.ts";
